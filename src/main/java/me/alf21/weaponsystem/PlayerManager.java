@@ -1,30 +1,20 @@
-package me.alf21.weapon_system;
+package me.alf21.weaponsystem;
+
+import net.gtaun.shoebill.constant.PlayerKey;
+import net.gtaun.shoebill.constant.PlayerState;
+import net.gtaun.shoebill.constant.TextDrawFont;
+import net.gtaun.shoebill.constant.WeaponModel;
+import net.gtaun.shoebill.data.Color;
+import net.gtaun.shoebill.data.Location;
+import net.gtaun.shoebill.event.player.*;
+import net.gtaun.shoebill.object.*;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import net.gtaun.shoebill.constant.PlayerKey;
-import net.gtaun.shoebill.constant.TextDrawFont;
 //import net.gtaun.shoebill.constant.SpecialAction;
-import net.gtaun.shoebill.constant.WeaponModel;
-import net.gtaun.shoebill.constant.PlayerState;
-import net.gtaun.shoebill.data.Color;
-import net.gtaun.shoebill.data.Location;
-import net.gtaun.shoebill.event.player.PlayerConnectEvent;
-import net.gtaun.shoebill.event.player.PlayerDeathEvent;
-import net.gtaun.shoebill.event.player.PlayerDisconnectEvent;
-import net.gtaun.shoebill.event.player.PlayerGiveDamageEvent;
-import net.gtaun.shoebill.event.player.PlayerKeyStateChangeEvent;
-import net.gtaun.shoebill.event.player.PlayerSpawnEvent;
-import net.gtaun.shoebill.event.player.PlayerUpdateEvent;
-import net.gtaun.shoebill.event.player.PlayerWeaponShotEvent;
-import net.gtaun.shoebill.object.Destroyable;
-import net.gtaun.shoebill.object.Player;
-import net.gtaun.shoebill.object.PlayerObject;
-import net.gtaun.shoebill.object.SampObject;
-import net.gtaun.shoebill.object.Textdraw;
 //import net.gtaun.shoebill.object.Timer;
 
 /**
@@ -49,13 +39,12 @@ import net.gtaun.shoebill.object.Textdraw;
 //TODO: REMOVE muni_LOADED !
 
 public class PlayerManager implements Destroyable {
+	public static final boolean allowMinigun = false; //false, if u want better performance bcus of spamming and calculation for each ammo on shot
+	public static final int brandObjectsUpdateTime = 200; //Time when the next brandObject can create FOR EACH PLAYER !
 	//Config
 	private static final boolean allowMinigunAmmoTypes = false;
-	public static final boolean allowMinigun = false; //false, if u want better performance bcus of spamming and calculation for each ammo on shot
 	private static final int changeWeaponFreezingTime = 1000; //freezingtime in miliseconds | 0, if no freeze
 	private static final int maxBrandObjects = 50; // FOR EACH PLAYER !
-	public static final int brandObjectsUpdateTime = 200; //Time when the next brandObject can create FOR EACH PLAYER !
-	
 	public PlayerData playerLifecycle;
 	private PlayerData externPlayerLifecycle;
 	private Map<Player, HashMap<Integer, WeaponData>> weaponDataMap;
@@ -66,27 +55,28 @@ public class PlayerManager implements Destroyable {
         this.weaponDataMap = new HashMap<Player, HashMap<Integer, WeaponData>>();
         
 //PlayerConnectEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerConnectEvent.class, (e) -> {
-			WeaponsystemPlugin.getInstance().getShoebill().runOnSampThread(() -> {
-				playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerConnectEvent.class, (e) -> {
+			WeaponSystem.getInstance().getShoebill().runOnSampThread(() -> {
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 				INIT_Weapons(e.getPlayer());
 				playerLifecycle.setPlayerStatus("connected");
 			});
 		});
 		
 //PlayerWeaponShotEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerWeaponShotEvent.class, (e) -> {
-			WeaponsystemPlugin.getInstance().getShoebill().runOnSampThread(() -> {
-				playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-				if(e.getHitPlayer() != null) externPlayerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(e.getHitPlayer(), PlayerData.class);
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerWeaponShotEvent.class, (e) -> {
+			WeaponSystem.getInstance().getShoebill().runOnSampThread(() -> {
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+				if (e.getHitPlayer() != null)
+					externPlayerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getHitPlayer(), PlayerData.class);
 				WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
-				if(weaponData.getMUNI_Explosiv() > 0 && weaponData.getWeaponStatus().equals("explosiv")){
+				if (weaponData.getExplosiveAmmo() > 0 && weaponData.getWeaponState().equals("explosiv")) {
 					for(Player victim : Player.getHumans()){
 						victim.setHealth(100);
 					}
-					WeaponsystemPlugin.getInstance().getShoebill().getSampObjectManager().getWorld().createExplosion(new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z), 12, 1);
+					WeaponSystem.getInstance().getShoebill().getSampObjectManager().getWorld().createExplosion(new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z), 12, 1);
 					for(Player victim : Player.getHumans()){
-						PlayerData victimLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(victim, PlayerData.class);
+						PlayerData victimLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(victim, PlayerData.class);
 						if(victim.getLocation().x-e.getPosition().x<1&&victim.getLocation().x-e.getPosition().x>-1){
 							victim.setHealth(victimLifecycle.getHealth()-10);
 						}
@@ -101,10 +91,10 @@ public class PlayerManager implements Destroyable {
 						}
 					}
 					if(e.getHitObject() != null){
-						WeaponsystemPlugin.getInstance().getShoebill().getSampObjectManager().getWorld().createExplosion(e.getHitObject().getLocation(), 12, 1);
+						WeaponSystem.getInstance().getShoebill().getSampObjectManager().getWorld().createExplosion(e.getHitObject().getLocation(), 12, 1);
 					}
 				}
-				if(weaponData.getMUNI_Brand() > 0 && weaponData.getWeaponStatus().equals("brand")){
+				if (weaponData.getFireAmmo() > 0 && weaponData.getWeaponState().equals("brand")) {
 				//TODO: Entscheiden, ob man die Flammen nur für den Spieler oder auch für andere Spieler anzeigt.
 					if(e.getHitPlayer() != null) externPlayerLifecycle.setPlayerStatus("igniting");
 					else {
@@ -113,7 +103,7 @@ public class PlayerManager implements Destroyable {
 							|| playerLifecycle.getCreateBrand()){
 								playerLifecycle.setCreateBrand(false);
 								playerLifecycle.setBrandObjects(playerLifecycle.getBrandObjects()+1);
-								SampObject sampObject = WeaponsystemPlugin.getInstance().getShoebill().getSampObjectManager().createObject(18688, new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z+0.25f), e.getPosition(), 0);
+								SampObject sampObject = WeaponSystem.getInstance().getShoebill().getSampObjectManager().createObject(18688, new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z + 0.25f), e.getPosition(), 0);
 								Timer timer = new Timer();
 				                timer.schedule(new TimerTask() {
 				                    @Override
@@ -133,8 +123,8 @@ public class PlayerManager implements Destroyable {
 		});
 		
 //PlayerGiveDamageEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerGiveDamageEvent.class, (e) -> {
-			playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerGiveDamageEvent.class, (e) -> {
+			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 			WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
 			float damage = e.getAmount();
 			//TODO: NO-DM ZONES 
@@ -147,19 +137,15 @@ public class PlayerManager implements Destroyable {
 					if(e.getWeapon().getId() == 33) { CREATE_Explosion(e.getPlayer(), e.getVictim(), 5); }
 					if(e.getWeapon().getId() == 17) { damage = 2; }
 					*/
-					if(weaponData.getWeaponStatus().equals("normal")){
+					if (weaponData.getWeaponState().equals("normal")) {
 						damage = (e.getAmount()/100)*50; //50% weniger Schaden / die Haelfte -> nur 50% Schaden
-					}
-					else if(weaponData.getWeaponStatus().equals("brand")){
+					} else if (weaponData.getWeaponState().equals("brand")) {
 						damage = 1;
-					}
-					else if(weaponData.getWeaponStatus().equals("explosiv")){
+					} else if (weaponData.getWeaponState().equals("explosiv")) {
 						damage = (e.getAmount()/100)*10; //90% weniger Schaden -> 10% Schaden
-					}
-					else if(weaponData.getWeaponStatus().equals("panzerbrechend")){
+					} else if (weaponData.getWeaponState().equals("panzerbrechend")) {
 						damage = (e.getAmount()/100)*65; //35% weniger Schaden -> 65% Schaden
-					}
-					else if(weaponData.getWeaponStatus().equals("speziell")){
+					} else if (weaponData.getWeaponState().equals("speziell")) {
 						damage = (e.getAmount()/100)*120; //20% mehr Schaden -> 120% Schaden
 					}
 				}
@@ -170,8 +156,9 @@ public class PlayerManager implements Destroyable {
 				CREATE_WarnExplosion(e.getPlayer());
 			}
 		//Give damage (HP && Armour)
-			if(e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() >= damage && !weaponData.getWeaponStatus().equals("panzerbrechend")) e.getVictim().setArmour(e.getVictim().getArmour() - damage);
-			else if(e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() < damage && !weaponData.getWeaponStatus().equals("panzerbrechend")){
+			if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() >= damage && !weaponData.getWeaponState().equals("panzerbrechend"))
+				e.getVictim().setArmour(e.getVictim().getArmour() - damage);
+			else if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() < damage && !weaponData.getWeaponState().equals("panzerbrechend")) {
 				float restDamage = damage - e.getPlayer().getArmour();
 				e.getPlayer().setArmour(0);
 				e.getPlayer().setHealth(e.getPlayer().getHealth() - restDamage);
@@ -180,8 +167,8 @@ public class PlayerManager implements Destroyable {
 		});
 		
 //PlayerUpdateEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerUpdateEvent.class, (e) -> {
-			playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerUpdateEvent.class, (e) -> {
+			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 			playerLifecycle.setHealth(e.getPlayer().getHealth());
 			
 			if(playerLifecycle.getPlayerStatus().equals("igniting")){
@@ -205,13 +192,13 @@ public class PlayerManager implements Destroyable {
 		});
 
 //PlayerDisconnectEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerDisconnectEvent.class, (e) -> {
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerDisconnectEvent.class, (e) -> {
 			SAVE_Weapons(e.getPlayer());
 		});
 
 //PlayerSpawnEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerSpawnEvent.class, (e) -> {
-			WeaponsystemPlugin.getInstance().getShoebill().runOnSampThread(() -> {
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerSpawnEvent.class, (e) -> {
+			WeaponSystem.getInstance().getShoebill().runOnSampThread(() -> {
 				if(e.getPlayer().getState() != PlayerState.NONE) {
 					GIVE_NormalWeapons(e.getPlayer());
 				//	playerLifecycle.setPlayerStatus("spawned");
@@ -221,122 +208,98 @@ public class PlayerManager implements Destroyable {
 		});
 
 //PlayerDeathEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerDeathEvent.class, (e) -> {
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerDeathEvent.class, (e) -> {
 			
 		});
 		
 //PlayerKeyStateChangeEvent
-		WeaponsystemPlugin.getInstance().getEventManagerInstance().registerHandler(PlayerKeyStateChangeEvent.class, (e) -> {
-			playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerKeyStateChangeEvent.class, (e) -> {
+			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 			if(e.getPlayer().getKeyState().isKeyPressed(PlayerKey.NO)){
 				boolean ready = false;
 				WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
-				if(weaponData.getWeaponStatus().equals("normal") && !ready){
-					if(weaponData.getMUNI_Brand() > 0){
+				if (weaponData.getWeaponState().equals("normal") && !ready) {
+					if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Explosiv() > 0){
+					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Panzerbrechend() > 0){
+					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Speziell() > 0){
+					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Normal() > 0){
+					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
 						ready = true;
 					}
-				}
-				else if(weaponData.getWeaponStatus().equals("brand") && !ready){
-					if(weaponData.getMUNI_Explosiv() > 0){
+				} else if (weaponData.getWeaponState().equals("brand") && !ready) {
+					if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Panzerbrechend() > 0){
+					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Speziell() > 0){
+					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Normal() > 0){
+					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Brand() > 0){
+					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
 						ready = true;
 					}
-				}
-				else if(weaponData.getWeaponStatus().equals("explosiv") && !ready){
-					if(weaponData.getMUNI_Panzerbrechend() > 0){
+				} else if (weaponData.getWeaponState().equals("explosiv") && !ready) {
+					if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Speziell() > 0){
+					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Normal() > 0){
+					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Brand() > 0){
+					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Explosiv() > 0){
+					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
 						ready = true;
 					}
-				}
-				else if(weaponData.getWeaponStatus().equals("panzerbrechend") && !ready){
-					if(weaponData.getMUNI_Speziell() > 0){
+				} else if (weaponData.getWeaponState().equals("panzerbrechend") && !ready) {
+					if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Normal() > 0){
+					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Brand() > 0){
+					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Explosiv() > 0){
+					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Panzerbrechend() > 0){
+					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
 						ready = true;
 					}
-				}
-				else if(weaponData.getWeaponStatus().equals("speziell") && !ready){
-					if(weaponData.getMUNI_Normal() > 0){
+				} else if (weaponData.getWeaponState().equals("speziell") && !ready) {
+					if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Brand() > 0){
+					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Explosiv() > 0){
+					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Panzerbrechend() > 0){
+					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
 						ready = true;
-					}
-					else if(weaponData.getMUNI_Speziell() > 0){
+					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
 						ready = true;
 					}
@@ -347,12 +310,12 @@ public class PlayerManager implements Destroyable {
 	}
 	
 	public void OnPlayerChangeWeapon(Player player, int oldWeapon, int newWeapon){
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		WeaponData weaponData = getWeaponData(player, newWeapon);
 		if(isGun(newWeapon)){
 			if(!playerLifecycle.getPlayerStatus().equals("INIT")){
 				ANIMATION_Weapons_Reload(player, newWeapon);
-				SET_WeaponStatusText(player, weaponData.getWeaponStatus());
+				SET_WeaponStatusText(player, weaponData.getWeaponState());
 			}
 		}
 		else {
@@ -367,98 +330,94 @@ public class PlayerManager implements Destroyable {
 	}
 
 	private void AfterWeaponShot(PlayerWeaponShotEvent e, WeaponData weaponData) {
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-		if(weaponData.getMUNI_Normal() > 0
-		|| weaponData.getMUNI_Brand() > 0
-		|| weaponData.getMUNI_Explosiv() > 0
-		|| weaponData.getMUNI_Panzerbrechend() > 0
-		|| weaponData.getMUNI_Speziell() > 0){
-			if(weaponData.getWeaponStatus().equals("normal")){
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+		if (weaponData.getNormalAmmo() > 0
+				|| weaponData.getFireAmmo() > 0
+				|| weaponData.getExplosiveAmmo() > 0
+				|| weaponData.getHeavyAmmo() > 0
+				|| weaponData.getSpecialAmmo() > 0) {
+			if (weaponData.getWeaponState().equals("normal")) {
 				boolean ready = false;
-				if(weaponData.getMUNI_Normal() > 0){
+				if (weaponData.getNormalAmmo() > 0) {
 					ready = true;
-					weaponData.setMUNI_Normal(weaponData.getMUNI_Normal()-1);
+					weaponData.setNormalAmmo(weaponData.getNormalAmmo() - 1);
 				//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-				//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Normal());
-					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Normal());
+					//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getNormalAmmo());
+					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getNormalAmmo());
 				}
-				if(weaponData.getMUNI_Normal() <= 0 && ready){
-					if(weaponData.getMUNI_Brand() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-					else if(weaponData.getMUNI_Explosiv() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-					else if(weaponData.getMUNI_Panzerbrechend() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-					else if(weaponData.getMUNI_Speziell() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
+				if (weaponData.getNormalAmmo() <= 0 && ready) {
+					if (weaponData.getFireAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
+					else if (weaponData.getExplosiveAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
+					else if (weaponData.getHeavyAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
+					else if (weaponData.getSpecialAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
 				}
-			}
-			else if(weaponData.getWeaponStatus().equals("brand")){
+			} else if (weaponData.getWeaponState().equals("brand")) {
 				boolean ready = false;
-				if(weaponData.getMUNI_Brand() > 0){
+				if (weaponData.getFireAmmo() > 0) {
 					ready = true;
-					weaponData.setMUNI_Brand(weaponData.getMUNI_Brand()-1);
+					weaponData.setFireAmmo(weaponData.getFireAmmo() - 1);
 				//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-				//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Brand());
-					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Brand());
+					//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getFireAmmo());
+					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getFireAmmo());
 				}
-				if(weaponData.getMUNI_Brand() <= 0 && ready){
-					if(weaponData.getMUNI_Explosiv() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-					else if(weaponData.getMUNI_Panzerbrechend() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-					else if(weaponData.getMUNI_Speziell() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-					else if(weaponData.getMUNI_Normal() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
+				if (weaponData.getFireAmmo() <= 0 && ready) {
+					if (weaponData.getExplosiveAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
+					else if (weaponData.getHeavyAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
+					else if (weaponData.getSpecialAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
+					else if (weaponData.getNormalAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
 				}
-			}
-			else if(weaponData.getWeaponStatus().equals("explosiv")){
+			} else if (weaponData.getWeaponState().equals("explosiv")) {
 				boolean ready = false;
-				if(weaponData.getMUNI_Explosiv() > 0){
+				if (weaponData.getExplosiveAmmo() > 0) {
 					ready = true;
-					weaponData.setMUNI_Explosiv(weaponData.getMUNI_Explosiv()-1);
+					weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo() - 1);
 				//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-				//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Explosiv());
-					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Explosiv());
+					//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getExplosiveAmmo());
+					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getExplosiveAmmo());
 				}
-				if(weaponData.getMUNI_Explosiv() <= 0 && ready){
-					if(weaponData.getMUNI_Panzerbrechend() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-					else if(weaponData.getMUNI_Speziell() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-					else if(weaponData.getMUNI_Normal() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-					else if(weaponData.getMUNI_Brand() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
+				if (weaponData.getExplosiveAmmo() <= 0 && ready) {
+					if (weaponData.getHeavyAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
+					else if (weaponData.getSpecialAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
+					else if (weaponData.getNormalAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
+					else if (weaponData.getFireAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
 				}
-			}
-			else if(weaponData.getWeaponStatus().equals("panzerbrechend")){
+			} else if (weaponData.getWeaponState().equals("panzerbrechend")) {
 				boolean ready = false;
-				if(weaponData.getMUNI_Panzerbrechend() > 0){
+				if (weaponData.getHeavyAmmo() > 0) {
 					ready = true;
-					weaponData.setMUNI_Panzerbrechend(weaponData.getMUNI_Panzerbrechend()-1);
+					weaponData.setHeavyAmmo(weaponData.getHeavyAmmo() - 1);
 				//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-				//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Panzerbrechend());
-					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Panzerbrechend());
+					//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getHeavyAmmo());
+					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getHeavyAmmo());
 				}
-				if(weaponData.getMUNI_Panzerbrechend() <= 0 && ready){
-					if(weaponData.getMUNI_Speziell() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-					else if(weaponData.getMUNI_Normal() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-					else if(weaponData.getMUNI_Brand() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-					else if(weaponData.getMUNI_Explosiv() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
+				if (weaponData.getHeavyAmmo() <= 0 && ready) {
+					if (weaponData.getSpecialAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
+					else if (weaponData.getNormalAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
+					else if (weaponData.getFireAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
+					else if (weaponData.getExplosiveAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
 				}
-			}
-			else if(weaponData.getWeaponStatus().equals("speziell")){
+			} else if (weaponData.getWeaponState().equals("speziell")) {
 				boolean ready = false;
-				if(weaponData.getMUNI_Speziell() > 0){
+				if (weaponData.getSpecialAmmo() > 0) {
 					ready = true;
-					weaponData.setMUNI_Speziell(weaponData.getMUNI_Speziell()-1);
+					weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() - 1);
 				//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-				//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Speziell());
-					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getMUNI_Speziell());
+					//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getSpecialAmmo());
+					e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getSpecialAmmo());
 				}
-				if(weaponData.getMUNI_Speziell() <= 0 && ready){
-					if(weaponData.getMUNI_Normal() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-					else if(weaponData.getMUNI_Brand() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-					else if(weaponData.getMUNI_Explosiv() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-					else if(weaponData.getMUNI_Panzerbrechend() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
+				if (weaponData.getSpecialAmmo() <= 0 && ready) {
+					if (weaponData.getNormalAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
+					else if (weaponData.getFireAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
+					else if (weaponData.getExplosiveAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
+					else if (weaponData.getHeavyAmmo() > 0) SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
 				}
 			}
 		}
 	}
 	
 	private void SWITCH_Ammotyp(Player player, WeaponData weaponData, String ammotyp){
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
-		//TODO: ? Statt getMUNI_Normal,... alles über die Hashmap regeln -> bessere Performance, einfacher / kürzer
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		//TODO: ? Statt getNormalAmmo,... alles über die Hashmap regeln -> bessere Performance, einfacher / kürzer
 		//		oder den Hashmap getMUNI_Loaded löschen
 		//TODO: ? muni_LOADED to get shotable ammo without reload -> for later system -> only reloadAnimation when reloading...
 		//TODO: or delete muni_LOADED !
@@ -467,48 +426,53 @@ public class PlayerManager implements Destroyable {
 			HashMap<String, Integer> muni_LOADED = new HashMap<String, Integer>();
 			if(player.getArmedWeapon() != null){
 				if(weaponData.getMUNI_Loaded() != null) muni_LOADED = weaponData.getMUNI_Loaded();
-				muni_LOADED.put(weaponData.getWeaponStatus(), player.getArmedWeaponAmmo());
+				muni_LOADED.put(weaponData.getWeaponState(), player.getArmedWeaponAmmo());
 				if(player.getArmedWeaponAmmo() > 0) weaponData.setMUNI_Loaded(muni_LOADED);
 			}
 			*/
 			
 			if(ammotyp.equals("normal")){
-				weaponData.setWeaponStatus("normal");
+				weaponData.setWeaponState("normal");
 				player.setWeaponAmmo(player.getArmedWeapon(), 0);
 				/*if(muni_LOADED.containsKey("normal")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("normal"));
-				else */player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Normal());
+				else */
+				player.giveWeapon(player.getArmedWeapon(), weaponData.getNormalAmmo());
 			}
 			else if(ammotyp.equals("brand")){
-				weaponData.setWeaponStatus("brand");
+				weaponData.setWeaponState("brand");
 				player.setWeaponAmmo(player.getArmedWeapon(), 0);
 				/*if(muni_LOADED.containsKey("brand")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("brand"));
-				else */player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Brand());
+				else */
+				player.giveWeapon(player.getArmedWeapon(), weaponData.getFireAmmo());
 			}
 			else if(ammotyp.equals("explosiv")){
-				weaponData.setWeaponStatus("explosiv");
+				weaponData.setWeaponState("explosiv");
 				player.setWeaponAmmo(player.getArmedWeapon(), 0);
 				/*if(muni_LOADED.containsKey("explosiv")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("explosiv"));
-				else */player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Explosiv());
+				else */
+				player.giveWeapon(player.getArmedWeapon(), weaponData.getExplosiveAmmo());
 			}
 			else if(ammotyp.equals("panzerbrechend")){
-				weaponData.setWeaponStatus("panzerbrechend");
+				weaponData.setWeaponState("panzerbrechend");
 				player.setWeaponAmmo(player.getArmedWeapon(), 0);
 				/*if(muni_LOADED.containsKey("panzerbrechend")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("panzerbrechend"));
-				else */player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Panzerbrechend());
+				else */
+				player.giveWeapon(player.getArmedWeapon(), weaponData.getHeavyAmmo());
 			}
 			else if(ammotyp.equals("speziell")){
-				weaponData.setWeaponStatus("speziell");
+				weaponData.setWeaponState("speziell");
 				player.setWeaponAmmo(player.getArmedWeapon(), 0);
 				/*if(muni_LOADED.containsKey("speziell")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("speziell"));
-				else */player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Speziell());
+				else */
+				player.giveWeapon(player.getArmedWeapon(), weaponData.getSpecialAmmo());
 			}
 			ANIMATION_Weapons_Reload(player, player.getArmedWeapon().getId());
-			SET_WeaponStatusText(player, weaponData.getWeaponStatus());
+			SET_WeaponStatusText(player, weaponData.getWeaponState());
 		}
 	}
 
 	private void ANIMATION_Weapons_Reload(Player player, int weaponId) {
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		Timer timer = new Timer();
 		if(!playerLifecycle.getPlayerStatus().equals("reloaded")
 		&& !playerLifecycle.getPlayerStatus().equals("reloading")){
@@ -542,7 +506,7 @@ public class PlayerManager implements Destroyable {
 	}
 
 	private void ANIMATION_Clear(Player player, Timer timer, String playerStatus) {
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		if(playerLifecycle.getAnimationReady(timer)){
         	player.clearAnimations(1);
         //	playerLifecycle.setPlayerStatus(playerStatus);
@@ -577,18 +541,18 @@ public class PlayerManager implements Destroyable {
 	}
 
 	private void INIT_Weapons(Player player){
-		if(!WeaponsystemPlugin.getInstance().getMysqlConnection().exist(player)){
-			WeaponsystemPlugin.getInstance().getMysqlConnection().create(player);
+		if (!WeaponSystem.getInstance().getMysqlConnection().exist(player)) {
+			WeaponSystem.getInstance().getMysqlConnection().create(player);
 		}
 		for(int i = 0; i <= 12; i++){
-			Integer weaponId = WeaponsystemPlugin.getInstance().getMysqlConnection().getWeapon(player, i);
-			addWeaponData(player, weaponId, new WeaponData(player.getName(), weaponId));
+			Integer weaponId = WeaponSystem.getInstance().getMysqlConnection().getWeapon(player, i);
+			addWeaponData(player, weaponId, new WeaponData(player.getName(), WeaponModel.get(weaponId)));
 			WeaponData weaponData = getWeaponData(player, weaponId);
-			weaponData.setMUNI_Normal(WeaponsystemPlugin.getInstance().getMysqlConnection().getMUNI(player, i, "normal"));
-			weaponData.setMUNI_Brand(WeaponsystemPlugin.getInstance().getMysqlConnection().getMUNI(player, i, "brand"));
-			weaponData.setMUNI_Explosiv(WeaponsystemPlugin.getInstance().getMysqlConnection().getMUNI(player, i, "explosiv"));
-			weaponData.setMUNI_Panzerbrechend(WeaponsystemPlugin.getInstance().getMysqlConnection().getMUNI(player, i, "panzerbrechend"));
-			weaponData.setMUNI_Speziell(WeaponsystemPlugin.getInstance().getMysqlConnection().getMUNI(player, i, "speziell"));
+			weaponData.setNormalAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, "normal"));
+			weaponData.setFireAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, "brand"));
+			weaponData.setExplosiveAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, "explosiv"));
+			weaponData.setHeavyAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, "panzerbrechend"));
+			weaponData.setSpecialAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, "speziell"));
 		}
 	}
 	private void SAVE_Weapons(Player player){
@@ -597,21 +561,21 @@ public class PlayerManager implements Destroyable {
 			if(player.getWeaponData(i).getModel() != null){
 				Integer weaponId = player.getWeaponData(i).getModel().getId();
 				WeaponData weaponData = getWeaponData(player, weaponId);
-				WeaponsystemPlugin.getInstance().getMysqlConnection().setWeapon(player, i, weaponId);
-				WeaponsystemPlugin.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getMUNI_Normal(), "normal");
-				WeaponsystemPlugin.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getMUNI_Brand(), "brand");
-				WeaponsystemPlugin.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getMUNI_Explosiv(), "explosiv");
-				WeaponsystemPlugin.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getMUNI_Panzerbrechend(), "panzerbrechend");
-				WeaponsystemPlugin.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getMUNI_Speziell(), "speziell");
+				WeaponSystem.getInstance().getMysqlConnection().setWeapon(player, i, weaponId);
+				WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getNormalAmmo(), "normal");
+				WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getFireAmmo(), "brand");
+				WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getExplosiveAmmo(), "explosiv");
+				WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getHeavyAmmo(), "panzerbrechend");
+				WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, weaponId, weaponData.getSpecialAmmo(), "speziell");
 			}
 			else {
-				WeaponsystemPlugin.getInstance().getMysqlConnection().resetWeaponSlot(player, i);
+				WeaponSystem.getInstance().getMysqlConnection().resetWeaponSlot(player, i);
 			}
 		}
 	}
 	
 	private void GIVE_NormalWeapons(Player player){
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		playerLifecycle.setPlayerStatus("INIT");
 		for(int i = 0; i <= 12; i++){
 			GIVE_PlayerWeapon(player, i);
@@ -620,55 +584,47 @@ public class PlayerManager implements Destroyable {
 	}
 	private void GIVE_PlayerWeapon(Player player, int slot){
 		//TODO: BUG ! Do it WITHOUT MYSQL, bcus if u give a weapon ingame, the weapon will not be load after dead or so on
-		Integer weaponId = WeaponsystemPlugin.getInstance().getMysqlConnection().getWeapon(player, slot);
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		Integer weaponId = WeaponSystem.getInstance().getMysqlConnection().getWeapon(player, slot);
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		WeaponData weaponData = getWeaponData(player, weaponId);
-		if(weaponData.getMUNI_Normal() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Normal());
-			weaponData.setWeaponStatus("normal");
+		if (weaponData.getNormalAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getNormalAmmo());
+			weaponData.setWeaponState("normal");
+		} else if (weaponData.getFireAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getFireAmmo());
+			weaponData.setWeaponState("brand");
+		} else if (weaponData.getExplosiveAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getExplosiveAmmo());
+			weaponData.setWeaponState("explosiv");
+		} else if (weaponData.getHeavyAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getHeavyAmmo());
+			weaponData.setWeaponState("panzerbrechend");
+		} else if (weaponData.getSpecialAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getSpecialAmmo());
+			weaponData.setWeaponState("speziell");
 		}
-		else if(weaponData.getMUNI_Brand() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Brand());
-			weaponData.setWeaponStatus("brand");
-		}
-		else if(weaponData.getMUNI_Explosiv() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Explosiv());
-			weaponData.setWeaponStatus("explosiv");
-		}
-		else if(weaponData.getMUNI_Panzerbrechend() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Panzerbrechend());
-			weaponData.setWeaponStatus("panzerbrechend");
-		}
-		else if(weaponData.getMUNI_Speziell() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Speziell());
-			weaponData.setWeaponStatus("speziell");
-		}
-		if(isGun(weaponId)) SET_WeaponStatusText(player, weaponData.getWeaponStatus());
+		if (isGun(weaponId)) SET_WeaponStatusText(player, weaponData.getWeaponState());
 	}
 	public void GIVE_PlayerExternWeapon(Player player, int weaponId){
-		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		WeaponData weaponData = getWeaponData(player, weaponId);
-		if(weaponData.getMUNI_Normal() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Normal());
-			weaponData.setWeaponStatus("normal");
+		if (weaponData.getNormalAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getNormalAmmo());
+			weaponData.setWeaponState("normal");
+		} else if (weaponData.getFireAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getFireAmmo());
+			weaponData.setWeaponState("brand");
+		} else if (weaponData.getExplosiveAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getExplosiveAmmo());
+			weaponData.setWeaponState("explosiv");
+		} else if (weaponData.getHeavyAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getHeavyAmmo());
+			weaponData.setWeaponState("panzerbrechend");
+		} else if (weaponData.getSpecialAmmo() > 0) {
+			player.giveWeapon(weaponData.getWeaponModel(), weaponData.getSpecialAmmo());
+			weaponData.setWeaponState("speziell");
 		}
-		else if(weaponData.getMUNI_Brand() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Brand());
-			weaponData.setWeaponStatus("brand");
-		}
-		else if(weaponData.getMUNI_Explosiv() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Explosiv());
-			weaponData.setWeaponStatus("explosiv");
-		}
-		else if(weaponData.getMUNI_Panzerbrechend() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Panzerbrechend());
-			weaponData.setWeaponStatus("panzerbrechend");
-		}
-		else if(weaponData.getMUNI_Speziell() > 0){
-			player.giveWeapon(WeaponModel.get(weaponData.getWeaponId()), weaponData.getMUNI_Speziell());
-			weaponData.setWeaponStatus("speziell");
-		}
-		if(isGun(weaponId)) SET_WeaponStatusText(player, weaponData.getWeaponStatus());
+		if (isGun(weaponId)) SET_WeaponStatusText(player, weaponData.getWeaponState());
 	}
 	/*
 	private void CREATE_Explosion(Player player, Player victim, int countdown) {
@@ -724,27 +680,27 @@ public class PlayerManager implements Destroyable {
 	*/
     public void addWeaponData(Player player, Integer key, WeaponData weaponData){
     	HashMap<Integer, WeaponData> innerMap = weaponDataMap.get(player);
-        if(innerMap == null) innerMap = new HashMap<Integer, WeaponData>();
-        innerMap.put(key, weaponData);
-        weaponDataMap.put(player, innerMap);
+		if (innerMap == null) innerMap = new HashMap<>();
+		innerMap.put(key, weaponData);
+		weaponDataMap.put(player, innerMap);
     }
 
     public WeaponData getWeaponData(Player player, Integer key){
         HashMap<Integer, WeaponData> innerMap = weaponDataMap.get(player);
         if(innerMap == null || !innerMap.containsKey(key)){
         //to import extern imported Weapons
-        	WeaponData weaponData = new WeaponData(player.getName(), key);
-        	
-        //Initialize new Weapon
-        	weaponData.setMUNI_Normal(player.getWeaponData(WeaponModel.get(key).getSlot().getSlotId()).getAmmo());
-        	weaponData.setMUNI_Brand(0);
-        	weaponData.setMUNI_Explosiv(0);
-        	weaponData.setMUNI_Panzerbrechend(0);
-        	weaponData.setMUNI_Speziell(0);
-        	weaponData.setWeaponStatus("normal");
-        	
-        //Add the weapon to the HashMap
-        	addWeaponData(player, key, weaponData);
+			WeaponData weaponData = new WeaponData(player.getName(), WeaponModel.get(key));
+
+			//Initialize new Weapon
+			weaponData.setNormalAmmo(player.getWeaponData(WeaponModel.get(key).getSlot().getSlotId()).getAmmo());
+			weaponData.setFireAmmo(0);
+			weaponData.setExplosiveAmmo(0);
+			weaponData.setHeavyAmmo(0);
+			weaponData.setSpecialAmmo(0);
+			weaponData.setWeaponState("normal");
+
+			//Add the weapon to the HashMap
+			addWeaponData(player, key, weaponData);
         	return weaponData;
         }
         return innerMap.get(key);
@@ -752,15 +708,14 @@ public class PlayerManager implements Destroyable {
 
     public boolean hasWeaponData(Player player, Integer key){
         HashMap<Integer, WeaponData> innerMap = weaponDataMap.get(player);
-        if(innerMap.containsKey(key)) return true;
-        return false;
-    }
-    
-    private void TogglePlayerBurning(Player player, boolean burning){
-    	if(!IsPlayerInWater(player)){
-    		playerLifecycle = WeaponsystemPlugin.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
-    		Timer timer = new Timer();
-    		Timer timer2 = new Timer();
+		return innerMap.containsKey(key);
+	}
+
+	private void TogglePlayerBurning(Player player, boolean burning) {
+		if(!IsPlayerInWater(player)){
+			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+			Timer timer = new Timer();
+			Timer timer2 = new Timer();
     		if(burning)
 	        {
     			PlayerObject.create(player, 18688, new Location(player.getLocation().x, player.getLocation().y, player.getLocation().z), 0, 0, 0);
@@ -783,39 +738,35 @@ public class PlayerManager implements Destroyable {
 	        else
 	        {
 	        	PlayerObject.get(player, 18688).destroy();
-    		//	playerLifecycle.setWeaponStatus("normal");
-    			playerLifecycle.setPlayerStatus("normal");
-	        }
+				//	playerLifecycle.setWeaponState("normal");
+				playerLifecycle.setPlayerStatus("normal");
+			}
     	}
     }
 
     private boolean IsPlayerInWater(Player player){
     	float z = player.getLocation().z;
-        if((1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 0 || (z <= 41.0 && IsPlayerInArea(player, -1387, -473, 2025, 2824))) ||
-        (1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 2 || (z <= 39.0 && IsPlayerInArea(player, -1387, -473, 2025, 2824))))
-        {
-            return true;
-        }
-        return false;
-    }
-    private boolean IsPlayerInArea(Player player, float minX, float maxX, float minY, float maxY){
-    	float x = player.getLocation().x;
+		return (1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 0 || (z <= 41.0 && IsPlayerInArea(player, -1387, -473, 2025, 2824))) ||
+				(1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 2 || (z <= 39.0 && IsPlayerInArea(player, -1387, -473, 2025, 2824)));
+	}
+
+	private boolean IsPlayerInArea(Player player, float minX, float maxX, float minY, float maxY) {
+		float x = player.getLocation().x;
     	float y = player.getLocation().y;
-	    if(x >= minX && x <= maxX && y >= minY && y <= maxY) { return true; }
-	    return false;
-    }
-    private boolean isGun(int weaponId){
-    	if(WeaponModel.get(weaponId).getSlot().getSlotId() != 0
-		&& WeaponModel.get(weaponId).getSlot().getSlotId() != 1
-		&& WeaponModel.get(weaponId).getSlot().getSlotId() != 8
-		&& WeaponModel.get(weaponId).getSlot().getSlotId() != 9
-		&& WeaponModel.get(weaponId).getSlot().getSlotId() != 10
-		&& WeaponModel.get(weaponId).getSlot().getSlotId() != 11
-		&& WeaponModel.get(weaponId).getSlot().getSlotId() != 12)
-    		return true;
-    	else return false;
-    }
-    private void BurningTimer(Player player){
+		return x >= minX && x <= maxX && y >= minY && y <= maxY;
+	}
+
+	private boolean isGun(int weaponId) {
+		return WeaponModel.get(weaponId).getSlot().getSlotId() != 0
+				&& WeaponModel.get(weaponId).getSlot().getSlotId() != 1
+				&& WeaponModel.get(weaponId).getSlot().getSlotId() != 8
+				&& WeaponModel.get(weaponId).getSlot().getSlotId() != 9
+				&& WeaponModel.get(weaponId).getSlot().getSlotId() != 10
+				&& WeaponModel.get(weaponId).getSlot().getSlotId() != 11
+				&& WeaponModel.get(weaponId).getSlot().getSlotId() != 12;
+	}
+
+	private void BurningTimer(Player player){
     	float hp = player.getHealth();
     	player.setHealth(hp-2);
     }

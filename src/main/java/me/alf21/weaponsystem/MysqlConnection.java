@@ -1,12 +1,12 @@
-package me.alf21.weapon_system;
+package me.alf21.weaponsystem;
+
+import net.gtaun.shoebill.constant.WeaponModel;
+import net.gtaun.shoebill.object.Player;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.sql.*;
-
-import net.gtaun.shoebill.constant.WeaponModel;
-import net.gtaun.shoebill.object.Player;
 
 /**
  * Created by Marvin on 26.05.2014.
@@ -19,7 +19,7 @@ public class MysqlConnection {
         if(!initialized) {
             try {
                 Class.forName("com.mysql.jdbc.Driver").newInstance();
-                File fl = new File(WeaponsystemPlugin.getInstance().getDataDir(), "mysql.txt");
+                File fl = new File(WeaponSystem.getInstance().getDataDir(), "mysql.txt");
                 if (fl.exists()) {
                     BufferedReader reader = new BufferedReader(new FileReader(fl));
                     String line;
@@ -38,13 +38,13 @@ public class MysqlConnection {
                     reader.close();
                 } else {
                     fl.createNewFile();
-                    WeaponsystemPlugin.getInstance().getLoggerInstance().info("[Fehler] Die Mysql Datei, wurde so eben erst erstellt!");
-                    WeaponsystemPlugin.getInstance().getShoebill().getSampObjectManager().getServer().sendRconCommand("exit");
+                    WeaponSystem.getInstance().getLoggerInstance().info("[Fehler] Die Mysql Datei, wurde so eben erst erstellt!");
+                    WeaponSystem.getInstance().getShoebill().getSampObjectManager().getServer().sendRconCommand("exit");
                     return false;
                 }
             } catch (Exception ex) {
-            	WeaponsystemPlugin.getInstance().getLoggerInstance().info("[Fehler] Verbindung zum MysqlServer konnte nicht hergestellt werden!");
-                WeaponsystemPlugin.getInstance().getShoebill().getSampObjectManager().getServer().sendRconCommand("exit");
+                WeaponSystem.getInstance().getLoggerInstance().info("[Fehler] Verbindung zum MysqlServer konnte nicht hergestellt werden!");
+                WeaponSystem.getInstance().getShoebill().getSampObjectManager().getServer().sendRconCommand("exit");
                 return false;
             }
         }
@@ -83,7 +83,7 @@ public class MysqlConnection {
 						         //   "weapon0_status FLOAT NOT NULL DEFAULT '100'" + //TODO:falls man am Arm getroffen wurde, Waffenleben berechnen -> Daraus Treffgenauigkeit, Schüsse ohne Kugeln usw berechnen
 						            ")");
             } else {
-            	WeaponsystemPlugin.getInstance().getLoggerInstance().info("Mysql Datenbank konnte nicht erstellt werden.");
+                WeaponSystem.getInstance().getLoggerInstance().info("Mysql Datenbank konnte nicht erstellt werden.");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -123,10 +123,10 @@ public class MysqlConnection {
     }
 	
 	public boolean check(String table, String field, String str) {
-		ResultSet rs = null;
-		Statement statement;
-		String query = "SELECT * FROM "+table+" WHERE "+field+" = '"+str+"'";
-		try {
+        ResultSet rs;
+        Statement statement;
+        String query = String.format("SELECT * FROM %s WHERE %s = '%s'", table, field, str);
+        try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
                 rs = statement.executeQuery(query);
@@ -151,10 +151,10 @@ public class MysqlConnection {
 	}
 
 	public Integer getWeapon(Player player, int i) {
-		ResultSet rs = null;
-		Statement statement;
-		String query = "SELECT * FROM samp_weaponsystem WHERE player = '"+player.getName()+"'";
-		try {
+        ResultSet rs;
+        Statement statement;
+        String query = String.format("SELECT * FROM samp_weaponsystem WHERE player = '%s'", player.getName());
+        try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
                 rs = statement.executeQuery(query);
@@ -175,8 +175,8 @@ public class MysqlConnection {
 	public int getMUNI(Player player, int i, String typ) {
 		ResultSet rs = null;
 		Statement statement;
-		String query = "SELECT * FROM samp_weaponsystem WHERE player = '"+player.getName()+"'";
-		try {
+        String query = String.format("SELECT * FROM samp_weaponsystem WHERE player = '%s'", player.getName());
+        try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
                 rs = statement.executeQuery(query);
@@ -197,8 +197,8 @@ public class MysqlConnection {
 	public boolean exist(Player player) {
 		ResultSet rs = null;
 		Statement statement;
-		String query = "SELECT * FROM samp_weaponsystem WHERE player = '" + player.getName() + "'";
-		try {
+        String query = String.format("SELECT * FROM samp_weaponsystem WHERE player = '%s'", player.getName());
+        try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
                 rs = statement.executeQuery(query);
@@ -232,7 +232,8 @@ public class MysqlConnection {
 		try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
-                statement.execute("UPDATE samp_weaponsystem SET ammo"+WeaponModel.get(weaponId).getSlot().getSlotId()+"_"+typ+" = '"+muni+"' WHERE player = '"+player.getName()+"'");
+                statement.execute(String.format("UPDATE samp_weaponsystem SET ammo%d_%s = '%d' WHERE player = '%s'",
+                        WeaponModel.get(weaponId).getSlot().getSlotId(), typ, muni, player.getName()));
             }
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");
@@ -245,7 +246,7 @@ public class MysqlConnection {
 		try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
-                statement.execute("UPDATE samp_weaponsystem SET weapon"+slot+"_model = '"+weaponId+"' WHERE player = '"+player.getName()+"'");
+                statement.execute(String.format("UPDATE samp_weaponsystem SET weapon%d_model = '%d' WHERE player = '%s'", slot, weaponId, player.getName()));
             }
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");
@@ -258,7 +259,7 @@ public class MysqlConnection {
 		try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
-                statement.execute("UPDATE samp_weaponsystem SET weapon"+slot+"_model = '0', ammo"+slot+"_normal = '0', ammo"+slot+"_explosiv ='0', ammo"+slot+"_brand = '0', ammo"+slot+"_panzerbrechend = '0', ammo"+slot+"_speziell = '0' WHERE player = '"+player.getName()+"'");
+                statement.execute(String.format("UPDATE samp_weaponsystem SET weapon%d_model = '0', ammo%d_normal = '0', ammo%d_explosiv ='0', ammo%d_brand = '0', ammo%d_panzerbrechend = '0', ammo%d_speziell = '0' WHERE player = '%s'", slot, slot, slot, slot, slot, slot, player.getName()));
             }
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");

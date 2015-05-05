@@ -1,14 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>me.alf21</groupId>
-  <artifactId>weapon_system</artifactId>
+	<artifactId>weapon-system</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-
-  <name>weapon_system</name>
-  <url>http://maven.apache.org</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -25,25 +22,9 @@
 			<name>GTAUN Public Repository</name>
 			<url>http://repo.gtaun.net/content/groups/public</url>
 		</repository>
-		<repository>
-			<id>sonatype-oss-snapshots</id>
-			<name>Sonatype Oss Snapshots</name>
-			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-			<snapshots>
-			<enabled>true</enabled>
-			<updatePolicy>daily</updatePolicy>
-			</snapshots>
-		</repository>
 	</repositories>
 	
 	<dependencies>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
-			<scope>test</scope>
-		</dependency>
-	
 		<dependency>
 			<groupId>net.gtaun</groupId>
 			<artifactId>shoebill-api</artifactId>
@@ -55,22 +36,6 @@
 		<dependency>
 			<groupId>net.gtaun</groupId>
 			<artifactId>shoebill-common</artifactId>
-			<version>1.0-SNAPSHOT</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>net.gtaun</groupId>
-			<artifactId>shoebill-utilities</artifactId>
-			<version>1.0-SNAPSHOT</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>net.gtaun</groupId>
-			<artifactId>util-event</artifactId>
 			<version>1.0-SNAPSHOT</version>
 			<type>jar</type>
 			<scope>compile</scope>
@@ -100,9 +65,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.3.1</version>
-                <configuration>
-                    <outputDirectory>C:\Users\Gillean\Desktop\Syn_apt-X Server\shoebill\plugins</outputDirectory>
-                </configuration>
             </plugin>
 		</plugins>
 	</build>

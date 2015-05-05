@@ -1,12 +1,12 @@
-package me.alf21.weapon_system;
-
-import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
+package me.alf21.weaponsystem;
 
 import net.gtaun.shoebill.common.player.PlayerLifecycleObject;
 import net.gtaun.shoebill.object.Player;
 import net.gtaun.util.event.EventManager;
+
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by Alf21 on 28.04.2015 in project weapon_system.

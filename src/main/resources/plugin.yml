@@ -1,7 +1,7 @@
-class: me.alf21.weapon_system.WeaponsystemPlugin
+class: me.alf21.weaponsystem.WeaponSystem
 name: Waffensystem
 version: 1.0-SNAPSHOT
 buildNumber: ${build.number}
-buildDate: 07.03.2015
-authors: Alf21
+buildDate: ${build.date}
+authors: Alf21, 123marvin123
 description: first build
