@@ -2,6 +2,7 @@ package me.alf21.weaponsystem;
 
 import net.gtaun.shoebill.common.player.PlayerLifecycleObject;
 import net.gtaun.shoebill.object.Player;
+import net.gtaun.shoebill.object.Textdraw;
 import net.gtaun.util.event.EventManager;
 
 import java.util.HashMap;
@@ -25,6 +26,7 @@ class PlayerData extends PlayerLifecycleObject {
 	private boolean createBrand = true;
 	private Timer timer = new Timer();
 	private Timer oldTimer;
+	private Textdraw weaponStatusText;
 
     public PlayerData(EventManager eventManager, Player player) {
         super(eventManager, player);
@@ -110,6 +112,14 @@ class PlayerData extends PlayerLifecycleObject {
     
     void setOldTimer(Timer oldTimer) {
 		this.oldTimer = oldTimer;
+	}
+    
+    Textdraw getWeaponStatusText() {
+		return weaponStatusText;
+	}
+    
+    void setWeaponStatusText(Textdraw weaponStatusText) {
+		this.weaponStatusText = weaponStatusText;
 	}
     
 
