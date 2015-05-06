@@ -48,7 +48,6 @@ public class PlayerManager implements Destroyable {
 	public PlayerData playerLifecycle;
 	private PlayerData externPlayerLifecycle;
 	private Map<Player, HashMap<Integer, WeaponData>> weaponDataMap;
-	private Textdraw weaponStatusText;
 
 	public PlayerManager()
 	{
@@ -216,95 +215,68 @@ public class PlayerManager implements Destroyable {
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerKeyStateChangeEvent.class, (e) -> {
 			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
 			if(e.getPlayer().getKeyState().isKeyPressed(PlayerKey.NO)){
-				boolean ready = false;
 				WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
-				if (weaponData.getWeaponState().equals("normal") && !ready) {
+				if (weaponData.getWeaponState().equals("normal")) {
 					if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-						ready = true;
 					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-						ready = true;
 					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-						ready = true;
 					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-						ready = true;
 					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-						ready = true;
 					}
-				} else if (weaponData.getWeaponState().equals("brand") && !ready) {
+				} else if (weaponData.getWeaponState().equals("brand")) {
 					if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-						ready = true;
 					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-						ready = true;
 					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-						ready = true;
 					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-						ready = true;
 					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-						ready = true;
 					}
-				} else if (weaponData.getWeaponState().equals("explosiv") && !ready) {
+				} else if (weaponData.getWeaponState().equals("explosiv")) {
 					if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-						ready = true;
 					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-						ready = true;
 					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-						ready = true;
 					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-						ready = true;
 					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-						ready = true;
 					}
-				} else if (weaponData.getWeaponState().equals("panzerbrechend") && !ready) {
+				} else if (weaponData.getWeaponState().equals("panzerbrechend")) {
 					if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-						ready = true;
 					} else if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-						ready = true;
 					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-						ready = true;
 					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-						ready = true;
 					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-						ready = true;
 					}
-				} else if (weaponData.getWeaponState().equals("speziell") && !ready) {
+				} else if (weaponData.getWeaponState().equals("speziell")) {
 					if (weaponData.getNormalAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "normal");
-						ready = true;
 					} else if (weaponData.getFireAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "brand");
-						ready = true;
 					} else if (weaponData.getExplosiveAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "explosiv");
-						ready = true;
 					} else if (weaponData.getHeavyAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "panzerbrechend");
-						ready = true;
 					} else if (weaponData.getSpecialAmmo() > 0) {
 						SWITCH_Ammotyp(e.getPlayer(), weaponData, "speziell");
-						ready = true;
 					}
 				}
-				ready = false;
 			}
 		});
 	}
@@ -325,7 +297,7 @@ public class PlayerManager implements Destroyable {
 				ANIMATION_Clear(player, playerLifecycle.getOldTimer(), playerLifecycle.getPlayerStatus());
 				playerLifecycle.setAnimationReady(playerLifecycle.getOldTimer(), false);
 			}
-			weaponStatusText.hide(player);
+			playerLifecycle.getWeaponStatusText().hide(player);
 		}
 	}
 
@@ -515,11 +487,9 @@ public class PlayerManager implements Destroyable {
 	}
 	
 	private void SET_WeaponStatusText(Player player, String string){
-		if(weaponStatusText != null){
-			weaponStatusText.hide(player);
-			weaponStatusText.destroy();
-		}
-		
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		String text = string.substring(0, 1).toUpperCase() + string.substring(1).toLowerCase();
+
 		//mid(525|6)
 		float xFloat = 525;
 		for (int i = 0; i < (string.length()%2==0?string.length()/2:(string.length()/2)+1); i++){
@@ -527,17 +497,25 @@ public class PlayerManager implements Destroyable {
 		    xFloat -= 7.0f;
 		}
 		
-		// On top of script:
-		String text = string.substring(0, 1).toUpperCase() + string.substring(1).toLowerCase();
-
+		Textdraw weaponStatusText;
+		if(playerLifecycle.getWeaponStatusText() != null){
+			weaponStatusText = playerLifecycle.getWeaponStatusText();
+			weaponStatusText.hide(player);
+			weaponStatusText.setText(text);
+		}
+		else {
+			weaponStatusText = Textdraw.create(xFloat, 6, text);
+		}
+		
 		// In OnGameModeInit
-		weaponStatusText = Textdraw.create(xFloat, 6, text);
 		weaponStatusText.setFont(TextDrawFont.get(1));
 		weaponStatusText.setLetterSize(0.4f, 2.8000000000000003f);
 		weaponStatusText.setColor(Color.WHITE); //0xffffffFF
 		weaponStatusText.setProportional(true);
 		weaponStatusText.setShadowSize(1);
 		weaponStatusText.show(player);
+		
+		playerLifecycle.setWeaponStatusText(weaponStatusText);
 	}
 
 	private void INIT_Weapons(Player player){
