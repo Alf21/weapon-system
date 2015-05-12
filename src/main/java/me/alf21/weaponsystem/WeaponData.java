@@ -1,7 +1,5 @@
 package me.alf21.weaponsystem;
 
-import net.gtaun.shoebill.constant.WeaponModel;
-
 /**
  * Created by Alf21 on 28.04.2015 in project weapon_system.
  * Copyright (c) 2015 Alf21. All rights reserved.
@@ -15,17 +13,19 @@ public class WeaponData {
 	private int specialAmmo;
 	private String weaponState;
 	private String playerName;
-	private WeaponModel weaponModel;
+	private Integer weaponId;
+	private boolean selected;
+	private boolean able;
 	//private HashMap<String, Integer> muni_LOADED;
 
-	public WeaponData(String playerName, WeaponModel weaponModel) {
+	public WeaponData(String playerName, Integer weaponId) {
 		this.playerName = playerName;
-		this.weaponModel = weaponModel;
+		this.weaponId = weaponId;
 	}
 
 
-	public WeaponModel getWeaponModel() {
-		return weaponModel;
+	public Integer getWeaponId() {
+		return weaponId;
 	}
 
 	public String getPlayerName() {
@@ -70,6 +70,22 @@ public class WeaponData {
 
 	void setSpecialAmmo(int specialAmmo) {
 		this.specialAmmo = specialAmmo;
+	}
+	
+	boolean isSelected() {
+		return selected;
+	}
+	
+	void setSelected(boolean selected) {
+		this.selected = selected;
+	}
+	
+	boolean isAble() {
+		return able;
+	}
+	
+	void setAble(boolean able) {
+		this.able = able;
 	}
 
     /*

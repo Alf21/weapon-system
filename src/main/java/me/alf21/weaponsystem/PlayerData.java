@@ -27,6 +27,8 @@ class PlayerData extends PlayerLifecycleObject {
 	private Timer timer = new Timer();
 	private Timer oldTimer;
 	private Textdraw weaponStatusText;
+	private int initializingWeapon;
+	private int holdingKey;
 
     public PlayerData(EventManager eventManager, Player player) {
         super(eventManager, player);
@@ -120,6 +122,22 @@ class PlayerData extends PlayerLifecycleObject {
     
     void setWeaponStatusText(Textdraw weaponStatusText) {
 		this.weaponStatusText = weaponStatusText;
+	}
+    
+    int getInitializingWeapon() {
+		return initializingWeapon;
+	}
+    
+    void setInitializingWeapon(int initializingWeapon) {
+		this.initializingWeapon = initializingWeapon;
+	}
+    
+    int getHoldingKey() {
+		return holdingKey;
+	}
+    
+    void setHoldingKey(int holdingKey) {
+		this.holdingKey = holdingKey;
 	}
     
 
