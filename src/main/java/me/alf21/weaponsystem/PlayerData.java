@@ -25,10 +25,12 @@ class PlayerData extends PlayerLifecycleObject {
 	private HashMap<Timer, Boolean> animationReady;
 	private boolean createBrand = true;
 	private Timer timer = new Timer();
-	private Timer oldTimer;
+	private Timer playerTimer;
 	private Textdraw weaponStatusText;
 	private int initializingWeapon;
 	private int holdingKey;
+	private int currentAnimationIndex;
+	private int maximalAnimationIndex;
 
     public PlayerData(EventManager eventManager, Player player) {
         super(eventManager, player);
@@ -107,13 +109,16 @@ class PlayerData extends PlayerLifecycleObject {
 		this.createBrand = createBrand;
 	}
     
-    Timer getOldTimer() {
-    	if(oldTimer == null) return new Timer();
-    	else return oldTimer;
+    Timer getPlayerTimer() {
+    	if(playerTimer == null){
+    		playerTimer = new Timer();
+    		return playerTimer;
+    	}
+    	else return playerTimer;
 	}
     
-    void setOldTimer(Timer oldTimer) {
-		this.oldTimer = oldTimer;
+    void setPlayerTimer(Timer playerTimer) {
+		this.playerTimer = playerTimer;
 	}
     
     Textdraw getWeaponStatusText() {
@@ -138,6 +143,22 @@ class PlayerData extends PlayerLifecycleObject {
     
     void setHoldingKey(int holdingKey) {
 		this.holdingKey = holdingKey;
+	}
+    
+    int getCurrentAnimationIndex() {
+		return currentAnimationIndex;
+	}
+    
+    void setCurrentAnimationIndex(int currentAnimationIndex) {
+		this.currentAnimationIndex = currentAnimationIndex;
+	}
+    
+    int getMaximalAnimationIndex() {
+		return maximalAnimationIndex;
+	}
+    
+    void setMaximalAnimationIndex(int maximalAnimationIndex) {
+		this.maximalAnimationIndex = maximalAnimationIndex;
 	}
     
 
