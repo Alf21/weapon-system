@@ -10,128 +10,131 @@ import net.gtaun.shoebill.common.dialog.MsgboxDialog;
 import net.gtaun.shoebill.constant.WeaponModel;
 import net.gtaun.shoebill.data.Color;
 import net.gtaun.shoebill.object.Player;
+import net.gtaun.shoebill.*;
 
 public class WeaponShop {
 	public PlayerData playerLifecycle;
 	
 	public void Shop(Player player) throws IOException {
-		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
-		try {
+		Shoebill.get().runOnSampThread(() -> {
 			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 			try {
-				ListDialog shopDialog = ListDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
-		                .caption("{FF8A05}Weaponshop")
-		                .buttonOk("Next")
-		                .buttonCancel("Exit") 
-		                .build();
-				
-				for(int i=1; i<=46; i++){
-					if(i==19||i==20||i==21) continue;
-					WeaponData weaponData = WeaponSystem.getInstance().getPlayerManager().getWeaponData(player, i);
-					int price = WeaponSystem.getInstance().getMysqlConnection().getWeaponPrice(weaponData.getWeaponId());
-                	String weaponName;
-					try {
-						weaponName = WeaponModel.get(weaponData.getWeaponId()).getName();
-					} catch (Exception e){
-						weaponName = "UNKNOWN";
-					}
-					shopDialog.getItems().add(ListDialogItem.create()
-			            .itemText((weaponData.isAble()?weaponData.isSelected()?"{CCCCCC}":"{00FF00}":weaponData.isSelected()?"{CCCCCC}":"{FF0000}") + weaponName)
-			            .onSelect((listDialogItem, o) -> {
-			                try {
-			                	String weaponName1;
-								try {
-									weaponName1 = WeaponModel.get(weaponData.getWeaponId()).getName();
-								} catch (Exception e){
-									weaponName1 = "UNKNOWN";
-								}
-			                	if(!weaponData.isAble() && weaponData.getWeaponId() != 0){
-		                    		String weaponName3 = weaponName1;
-				                	MsgboxDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
-									.caption("{FF8A05}Buy weapon " + weaponName1) 
-				                    .message("Do you want to buy " + weaponName1 + " for $" + price) 
-				                    .buttonCancel("Cancel") 
-				                    .buttonOk("Get!") 
-				                    .onClickOk((s) -> {
-				                    	try {
-					                    	if (price < 0 || price > player.getMoney())
-					                		{
-					                			player.sendMessage(Color.WHITE, "Not enough money.");
-					                			shopDialog.show();
-					                		}
-					                    	else {
-						                		player.setMoney(player.getMoney()-price);
-						                		weaponData.setNormalAmmo(WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())?0:1);
-						                		weaponData.setExplosiveAmmo(0);
-						                		weaponData.setFireAmmo(0);
-						                		weaponData.setHeavyAmmo(0);
-						                		weaponData.setSpecialAmmo(0);
-						                		weaponData.setAble(true);
-						                		WeaponSystem.getInstance().getPlayerManager().UNSELECT_Weapons(player, weaponData.getWeaponId(), "weaponId");
-						                		weaponData.setSelected(true);
-						                	//	weaponData.setWeaponState("normal");
-						                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-						                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
-						                			weaponData.setNormalAmmo(1);
-						                			weaponData.setWeaponState("normal");
-							                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-							                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
-						                		} else {
-						                			if(weaponData.getNormalAmmo() <= 0
-						                			&& weaponData.getExplosiveAmmo() <= 0
-						                			&& weaponData.getFireAmmo() <= 0
-						                			&& weaponData.getHeavyAmmo() <= 0
-						                			&& weaponData.getSpecialAmmo() <= 0)
-						                				reloadWeapon(player, weaponData, shopDialog, weaponName3);
-						                			else WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+				try {
+					ListDialog shopDialog = ListDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
+			                .caption("{FF8A05}Weaponshop")
+			                .buttonOk("Next")
+			                .buttonCancel("Exit") 
+			                .build();
+					
+					for(int i=1; i<=46; i++){
+						if(i==19||i==20||i==21) continue;
+						WeaponData weaponData = WeaponSystem.getInstance().getPlayerManager().getWeaponData(player, i);
+						int price = WeaponSystem.getInstance().getMysqlConnection().getWeaponPrice(weaponData.getWeaponId());
+	                	String weaponName;
+						try {
+							weaponName = WeaponModel.get(weaponData.getWeaponId()).getName();
+						} catch (Exception e){
+							weaponName = "UNKNOWN";
+						}
+						shopDialog.getItems().add(ListDialogItem.create()
+				            .itemText((weaponData.isAble()?weaponData.isSelected()?"{CCCCCC}":"{00FF00}":weaponData.isSelected()?"{CCCCCC}":"{FF0000}") + weaponName)
+				            .onSelect((listDialogItem, o) -> {
+				                try {
+				                	String weaponName1;
+									try {
+										weaponName1 = WeaponModel.get(weaponData.getWeaponId()).getName();
+									} catch (Exception e){
+										weaponName1 = "UNKNOWN";
+									}
+				                	if(!weaponData.isAble() && weaponData.getWeaponId() != 0){
+			                    		String weaponName3 = weaponName1;
+					                	MsgboxDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
+										.caption("{FF8A05}Buy weapon " + weaponName1) 
+					                    .message("Do you want to buy " + weaponName1 + " for $" + price) 
+					                    .buttonCancel("Cancel") 
+					                    .buttonOk("Get!") 
+					                    .onClickOk((s) -> {
+					                    	try {
+						                    	if (price < 0 || price > player.getMoney())
+						                		{
+						                			player.sendMessage(Color.WHITE, "Not enough money.");
+						                			shopDialog.show();
 						                		}
+						                    	else {
+							                		player.setMoney(player.getMoney()-price);
+							                		weaponData.setNormalAmmo(WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())?0:1);
+							                		weaponData.setExplosiveAmmo(0);
+							                		weaponData.setFireAmmo(0);
+							                		weaponData.setHeavyAmmo(0);
+							                		weaponData.setSpecialAmmo(0);
+							                		weaponData.setAble(true);
+							                		WeaponSystem.getInstance().getPlayerManager().UNSELECT_Weapons(player, weaponData.getWeaponId(), "weaponId");
+							                		weaponData.setSelected(true);
+							                	//	weaponData.setWeaponState("normal");
+							                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+							                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
+							                			weaponData.setNormalAmmo(1);
+							                			weaponData.setWeaponState("normal");
+								                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+								                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+							                		} else {
+							                			if(weaponData.getNormalAmmo() <= 0
+							                			&& weaponData.getExplosiveAmmo() <= 0
+							                			&& weaponData.getFireAmmo() <= 0
+							                			&& weaponData.getHeavyAmmo() <= 0
+							                			&& weaponData.getSpecialAmmo() <= 0)
+							                				reloadWeapon(player, weaponData, shopDialog, weaponName3);
+							                			else WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+							                		}
+						                    	}
+					                    	} catch (Exception e){
+					                    		System.out.println(e);
+					                			e.printStackTrace();
 					                    	}
-				                    	} catch (Exception e){
-				                    		System.out.println(e);
-				                			e.printStackTrace();
-				                    	}
-				                    })
-				                    .parentDialog(shopDialog)
-				                    .onClickCancel(AbstractDialog::showParentDialog) 
-				                    .build() 
-				                    .show();
-			                	} else if(weaponData.isAble() && weaponData.isSelected() && WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
-	                				reloadWeapon(player, weaponData, shopDialog, weaponName1);
-			                	} else {
-			                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
-			                			weaponData.setNormalAmmo(1);
-			                			weaponData.setWeaponState("normal");
-				                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-				                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
-			                		} else {
-			                			if(weaponData.getNormalAmmo() <= 0
-			                			&& weaponData.getExplosiveAmmo() <= 0
-			                			&& weaponData.getFireAmmo() <= 0
-			                			&& weaponData.getHeavyAmmo() <= 0
-			                			&& weaponData.getSpecialAmmo() <= 0)
-			                				reloadWeapon(player, weaponData, shopDialog, weaponName1);
-			                			else WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
-			                		}
-			                	}
-			                } catch (Exception e) {
-								System.out.println(e);
-								e.printStackTrace();
-							}
-			            })
-			            .build());
+					                    })
+					                    .parentDialog(shopDialog)
+					                    .onClickCancel(AbstractDialog::showParentDialog) 
+					                    .build() 
+					                    .show();
+				                	} else if(weaponData.isAble() && weaponData.isSelected() && WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
+		                				reloadWeapon(player, weaponData, shopDialog, weaponName1);
+				                	} else {
+				                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
+				                			weaponData.setNormalAmmo(1);
+				                			weaponData.setWeaponState("normal");
+					                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+					                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+				                		} else {
+				                			if(weaponData.getNormalAmmo() <= 0
+				                			&& weaponData.getExplosiveAmmo() <= 0
+				                			&& weaponData.getFireAmmo() <= 0
+				                			&& weaponData.getHeavyAmmo() <= 0
+				                			&& weaponData.getSpecialAmmo() <= 0)
+				                				reloadWeapon(player, weaponData, shopDialog, weaponName1);
+				                			else WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+				                		}
+				                	}
+				                } catch (Exception e) {
+									System.out.println(e);
+									e.printStackTrace();
+								}
+				            })
+				            .build());
+					}
+					
+					shopDialog.show();
+				} catch (Exception e) {
+					System.out.println(e);
+					player.sendMessage(Color.RED, "An error occupied, so please reconnect or ask our Support!");
+					e.printStackTrace();
 				}
-				
-				shopDialog.show();
 			} catch (Exception e) {
 				System.out.println(e);
 				player.sendMessage(Color.RED, "An error occupied, so please reconnect or ask our Support!");
 				e.printStackTrace();
 			}
-		} catch (Exception e) {
-			System.out.println(e);
-			player.sendMessage(Color.RED, "An error occupied, so please reconnect or ask our Support!");
-			e.printStackTrace();
-		}
+		});
 	}
 	
 	private void reloadWeapon(Player player, WeaponData weaponData, ListDialog shopDialog, String weaponName1) {
