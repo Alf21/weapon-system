@@ -11,7 +11,7 @@ public class WeaponData {
 	private int normalAmmo;
 	private int heavyAmmo;
 	private int specialAmmo;
-	private String weaponState;
+	private AmmoState ammoState;
 	private String playerName;
 	private Integer weaponId;
 	private boolean selected;
@@ -98,11 +98,11 @@ public class WeaponData {
 	}
 	*/
 
-	String getWeaponState() {
-		return weaponState;
+	AmmoState getAmmoState() {
+		return ammoState;
 	}
 
-	void setWeaponState(String weaponState) {
-		this.weaponState = weaponState;
+	void setAmmoState(AmmoState weaponState) {
+		this.ammoState = weaponState;
 	}
 }

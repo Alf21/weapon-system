@@ -5,7 +5,6 @@ import net.gtaun.shoebill.object.Player;
 import net.gtaun.shoebill.resource.Plugin;
 import net.gtaun.util.event.EventManager;
 import net.gtaun.util.event.EventManagerNode;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +87,7 @@ public class WeaponSystem extends Plugin {
 		weaponData.setHeavyAmmo(0);
 		weaponData.setSpecialAmmo(0);
 		weaponData.setNormalAmmo(ammo);
-		weaponData.setWeaponState("normal");
+		weaponData.setAmmoState(AmmoState.NORMAL);
 		weaponData.setAble(true);
 
 		playerManager.addWeaponData(player, weaponId, weaponData);
@@ -101,7 +100,7 @@ public class WeaponSystem extends Plugin {
     public void givePlayerNewWeapon(Player player, int weaponId, int ammo){ //To initialize new Weapons with Weapondata / Ammo and get the data later again
     	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		weaponData.setNormalAmmo(ammo);
-		weaponData.setWeaponState("normal");
+		weaponData.setAmmoState(AmmoState.NORMAL);
 		weaponData.setAble(true);
 		
 		playerManager.addWeaponData(player, weaponId, weaponData);
@@ -115,23 +114,27 @@ public class WeaponSystem extends Plugin {
 		weaponData.setNormalAmmo(ammo);
 		playerManager.addWeaponData(player, weaponId, weaponData);
     }
-    public void setWeaponAmmo_IGNITE(Player player, int weaponId, int ammo){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public void setFireWeaponAmmo(Player player, int weaponId, int ammo) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		weaponData.setFireAmmo(ammo);
 		playerManager.addWeaponData(player, weaponId, weaponData);
     }
-    public void setWeaponAmmo_EXPLOSIVE(Player player, int weaponId, int ammo){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public void setExplosiveWeaponAmmo(Player player, int weaponId, int ammo) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		weaponData.setExplosiveAmmo(ammo);
 		playerManager.addWeaponData(player, weaponId, weaponData);
     }
-    public void setWeaponAmmo_ARMOUR_PIERCING(Player player, int weaponId, int ammo){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public void setHeavyWeaponAmmo(Player player, int weaponId, int ammo) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		weaponData.setHeavyAmmo(ammo);
 		playerManager.addWeaponData(player, weaponId, weaponData);
     }
-    public void setWeaponAmmo_SPEZIAL(Player player, int weaponId, int ammo){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public void setSpecialWeaponAmmo(Player player, int weaponId, int ammo) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		weaponData.setSpecialAmmo(ammo);
 		playerManager.addWeaponData(player, weaponId, weaponData);
     }
@@ -140,20 +143,24 @@ public class WeaponSystem extends Plugin {
     	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		return weaponData.getNormalAmmo();
     }
-    public int getWeaponAmmo_IGNITE(Player player, int weaponId){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public int getFireWeaponAmmo(Player player, int weaponId) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		return weaponData.getFireAmmo();
     }
-    public int getWeaponAmmo_EXPLOSIVE(Player player, int weaponId){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public int getExplosiveWeaponAmmo(Player player, int weaponId) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		return weaponData.getExplosiveAmmo();
     }
-    public int getWeaponAmmo_ARMOUR_PIERCING(Player player, int weaponId){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public int getHeavyWeaponAmmo(Player player, int weaponId) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		return weaponData.getHeavyAmmo();
     }
-    public int getWeaponAmmo_SPEZIAL(Player player, int weaponId){
-    	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+
+	public int getSpecialWeaponAmmo(Player player, int weaponId) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		return weaponData.getSpecialAmmo();
     }
 }

@@ -1,15 +1,11 @@
 package me.alf21.weaponsystem;
 
-import java.io.IOException;
-
-import net.gtaun.shoebill.common.dialog.AbstractDialog;
-import net.gtaun.shoebill.common.dialog.InputDialog;
-import net.gtaun.shoebill.common.dialog.ListDialog;
-import net.gtaun.shoebill.common.dialog.ListDialogItem;
-import net.gtaun.shoebill.common.dialog.MsgboxDialog;
+import net.gtaun.shoebill.common.dialog.*;
 import net.gtaun.shoebill.constant.WeaponModel;
 import net.gtaun.shoebill.data.Color;
 import net.gtaun.shoebill.object.Player;
+
+import java.io.IOException;
 
 public class WeaponShop {
 	public PlayerData playerLifecycle;
@@ -69,12 +65,12 @@ public class WeaponShop {
 						                		weaponData.setAble(true);
 						                		WeaponSystem.getInstance().getPlayerManager().UNSELECT_Weapons(player, weaponData.getWeaponId(), "weaponId");
 						                		weaponData.setSelected(true);
-						                	//	weaponData.setWeaponState("normal");
-						                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+												//	weaponData.setAmmoState("normal");
+												WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
 						                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
 						                			weaponData.setNormalAmmo(1);
-						                			weaponData.setWeaponState("normal");
-							                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+													weaponData.setAmmoState(AmmoState.NORMAL);
+													WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
 							                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
 						                		} else {
 						                			if(weaponData.getNormalAmmo() <= 0
@@ -100,8 +96,8 @@ public class WeaponShop {
 			                	} else {
 			                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
 			                			weaponData.setNormalAmmo(1);
-			                			weaponData.setWeaponState("normal");
-				                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+										weaponData.setAmmoState(AmmoState.NORMAL);
+										WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
 				                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
 			                		} else {
 			                			if(weaponData.getNormalAmmo() <= 0
@@ -151,18 +147,16 @@ public class WeaponShop {
             .onClickCancel(AbstractDialog::showParentDialog) 
             .build();
         	boolean ready = false;
-        	for(String munityp : getAvailableMunityp(weaponData.getWeaponId())){
-        		if(munityp == null) continue;
+			for (AmmoState munityp : AmmoState.values()) {
+				if(munityp == null) continue;
         		ready = true;
         		double ammoTypPrice = WeaponSystem.getInstance().getMysqlConnection().getAmmoPrice(weaponData.getWeaponId());
-        		if(munityp.equals("normal")) ammoTypPrice = ammoTypPrice/100 * 100;
-        		else if(munityp.equals("brand")) ammoTypPrice = ammoTypPrice/100 * 10;
-        		else if(munityp.equals("explosiv")) ammoTypPrice = ammoTypPrice/100 * 250;
-        		else if(munityp.equals("panzerbrechend")) ammoTypPrice = ammoTypPrice/100 * 120;
-        		else if(munityp.equals("speziell")) ammoTypPrice = ammoTypPrice/100 * 350;
-        		String text = "";
-        		if(munityp != null && !munityp.equals("")) text = munityp.substring(0, 1).toUpperCase() + munityp.substring(1).toLowerCase();
-        		
+				if (munityp == AmmoState.NORMAL) ammoTypPrice = ammoTypPrice / 100 * 100;
+				else if (munityp == AmmoState.FIRE) ammoTypPrice = ammoTypPrice / 100 * 10;
+				else if (munityp == AmmoState.EXPLOSIVE) ammoTypPrice = ammoTypPrice / 100 * 250;
+				else if (munityp == AmmoState.HEAVY) ammoTypPrice = ammoTypPrice / 100 * 120;
+				else if (munityp == AmmoState.SPECIAL) ammoTypPrice = ammoTypPrice / 100 * 350;
+
 				int ammo = 1;
         		try {
         			ammo = Integer.parseInt(s);
@@ -174,49 +168,51 @@ public class WeaponShop {
 				int ammo2 = ammo;
         		
 				ammoDialog.getItems().add(ListDialogItem.create()
-	            .itemText("Amount (" + text + "): " + (ammoPrice2>player.getMoney()?"{FF0000}":"{00FF00}") + ammo + " / $" + ammoPrice2)
-	            .onSelect((listDialogItem2, o2) -> {
-                	try {
-                	//	final int ammoPrice3 = ammoPrice2*ammo2;
-                    //	if (ammoPrice3 < 0 || ammoPrice3 > player.getMoney())
-                		if (ammoPrice2 < 0 || ammoPrice2 > player.getMoney())
-                		{
-                			player.sendMessage(Color.WHITE, "Not enough money.");
-                			shopDialog.show();
-                		}
-                    	else {
-                    		MsgboxDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
-							.caption("{FF8A05}Buy " + ammo2 + " AMMO") 
-		                    .message("Do you want to buy " + ammo2 + " AMMO for $" + ammoPrice2) 
-		                    .buttonCancel("Back") 
-		                    .buttonOk("Get!") 
-		                    .onClickOk((s1) -> {
-		                    	try {
-			                		player.setMoney(player.getMoney()-ammoPrice2);
-			                		if(munityp.equals("normal")) weaponData.setNormalAmmo(weaponData.getNormalAmmo()+ammo2);
-			                		else if(munityp.equals("brand")) weaponData.setFireAmmo(weaponData.getFireAmmo()+ammo2);
-			                		else if(munityp.equals("explosiv")) weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo()+ammo2);
-			                		else if(munityp.equals("panzerbrechend")) weaponData.setHeavyAmmo(weaponData.getHeavyAmmo()+ammo2);
-			                		else if(munityp.equals("speziell")) weaponData.setSpecialAmmo(weaponData.getSpecialAmmo()+ammo2);
-			                		weaponData.setWeaponState(munityp);
-			                		WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-			                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
-			                		Shop(player);
-		                    	} catch (Exception e){
-		                    		System.out.println(e);
-		                			e.printStackTrace();
-		                    	}
-		                    })
-		                    .parentDialog(ammoDialog)
-		                    .onClickCancel(AbstractDialog::showParentDialog) 
-		                    .build() 
-		                    .show();
-                    	}
-                	} catch (Exception e){
-                		System.out.println(e);
-            			e.printStackTrace();
-                	}
-                })
+						.itemText("Amount (" + munityp.getDisplayName() + "): " + (ammoPrice2 > player.getMoney() ? "{FF0000}" : "{00FF00}") + ammo + " / $" + ammoPrice2)
+						.onSelect((listDialogItem2, o2) -> {
+							try {
+								//	final int ammoPrice3 = ammoPrice2*ammo2;
+								//	if (ammoPrice3 < 0 || ammoPrice3 > player.getMoney())
+								if (ammoPrice2 < 0 || ammoPrice2 > player.getMoney()) {
+									player.sendMessage(Color.WHITE, "Not enough money.");
+									shopDialog.show();
+								} else {
+									MsgboxDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
+											.caption("{FF8A05}Buy " + ammo2 + " AMMO")
+											.message("Do you want to buy " + ammo2 + " AMMO for $" + ammoPrice2)
+											.buttonCancel("Back")
+											.buttonOk("Get!")
+											.onClickOk((s1) -> {
+												try {
+													player.setMoney(player.getMoney() - ammoPrice2);
+													if (munityp == AmmoState.NORMAL)
+														weaponData.setNormalAmmo(weaponData.getNormalAmmo() + ammo2);
+													else if (munityp == AmmoState.FIRE)
+														weaponData.setFireAmmo(weaponData.getFireAmmo() + ammo2);
+													else if (munityp == AmmoState.EXPLOSIVE)
+														weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo() + ammo2);
+													else if (munityp == AmmoState.HEAVY)
+														weaponData.setHeavyAmmo(weaponData.getHeavyAmmo() + ammo2);
+													else if (munityp == AmmoState.SPECIAL)
+														weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() + ammo2);
+													weaponData.setAmmoState(munityp);
+													WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+													WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+													Shop(player);
+												} catch (Exception e) {
+													e.printStackTrace();
+												}
+											})
+											.parentDialog(ammoDialog)
+											.onClickCancel(AbstractDialog::showParentDialog)
+											.build()
+											.show();
+								}
+							} catch (Exception e) {
+								System.out.println(e);
+								e.printStackTrace();
+							}
+						})
                 .build());
             }
         	if(ready) ammoDialog.show();
@@ -237,10 +233,5 @@ public class WeaponShop {
         .onClickCancel(AbstractDialog::showParentDialog) 
         .build() 
         .show();
-	}
-
-	private String[] getAvailableMunityp(int weaponId){
-		String[] array = {"normal", "brand", "explosiv", "panzerbrechend", "speziell"};
-		return array;
 	}
 }

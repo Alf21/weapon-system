@@ -229,7 +229,7 @@ public class MysqlConnection {
 		return false;   
 	}
 
-	public int getMUNI(Player player, int i, String typ) {
+	public int getMUNI(Player player, int i, AmmoState typ) {
 		ResultSet rs = null;
 		Statement statement;
         String query = String.format("SELECT * FROM samp_weaponsystem WHERE player = '%s'", player.getName());
@@ -284,14 +284,14 @@ public class MysqlConnection {
 		}
 	}
 
-	public void setMUNI(Player player, Integer weaponId, int muni, String typ) {
+	public void setMUNI(Player player, Integer weaponId, int muni, AmmoState typ) {
 		Statement statement;
 		try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
                 statement.execute(String.format("UPDATE samp_weaponsystem SET ammo%d_%s = '%d' WHERE player = '%s'",
-                        weaponId, typ, muni, player.getName()));
-            }
+						weaponId, typ.toString(), muni, player.getName()));
+			}
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");
             e.printStackTrace();
