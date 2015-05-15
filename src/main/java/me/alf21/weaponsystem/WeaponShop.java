@@ -10,7 +10,7 @@ import java.io.IOException;
 public class WeaponShop {
 	public PlayerData playerLifecycle;
 	
-	public void Shop(Player player) throws IOException {
+	public void shop(Player player) throws IOException {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		try {
 			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
@@ -23,6 +23,7 @@ public class WeaponShop {
 				
 				for(int i=1; i<=46; i++){
 					if(i==19||i==20||i==21) continue;
+				//	if(i==37||WeaponModel.get(i).getSlot().getSlotId()==9) continue; //TODO: Flamethrower bugfix
 					WeaponData weaponData = WeaponSystem.getInstance().getPlayerManager().getWeaponData(player, i);
 					int price = WeaponSystem.getInstance().getMysqlConnection().getWeaponPrice(weaponData.getWeaponId());
                 	String weaponName;
@@ -57,21 +58,23 @@ public class WeaponShop {
 					                		}
 					                    	else {
 						                		player.setMoney(player.getMoney()-price);
-						                		weaponData.setNormalAmmo(WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())?0:1);
+						                		weaponData.setNormalAmmo(
+						                				WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())||
+						                				WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId())?0:1);
 						                		weaponData.setExplosiveAmmo(0);
 						                		weaponData.setFireAmmo(0);
 						                		weaponData.setHeavyAmmo(0);
 						                		weaponData.setSpecialAmmo(0);
 						                		weaponData.setAble(true);
-						                		WeaponSystem.getInstance().getPlayerManager().UNSELECT_Weapons(player, weaponData.getWeaponId(), "weaponId");
+						                		WeaponSystem.getInstance().getPlayerManager().unselectWeapons(player, weaponData.getWeaponId(), "weaponId");
 						                		weaponData.setSelected(true);
 												//	weaponData.setAmmoState("normal");
 												WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-						                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
+						                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId()) && !WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId())){
 						                			weaponData.setNormalAmmo(1);
 													weaponData.setAmmoState(AmmoState.NORMAL);
 													WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-							                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+							                		WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
 						                		} else {
 						                			if(weaponData.getNormalAmmo() <= 0
 						                			&& weaponData.getExplosiveAmmo() <= 0
@@ -79,7 +82,7 @@ public class WeaponShop {
 						                			&& weaponData.getHeavyAmmo() <= 0
 						                			&& weaponData.getSpecialAmmo() <= 0)
 						                				reloadWeapon(player, weaponData, shopDialog, weaponName3);
-						                			else WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+						                			else WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
 						                		}
 					                    	}
 				                    	} catch (Exception e){
@@ -91,14 +94,16 @@ public class WeaponShop {
 				                    .onClickCancel(AbstractDialog::showParentDialog) 
 				                    .build() 
 				                    .show();
-			                	} else if(weaponData.isAble() && weaponData.isSelected() && WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
+			                	} else if(weaponData.isAble() && weaponData.isSelected() && WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())
+			                			||weaponData.isAble() && weaponData.isSelected() && WeaponModel.get(weaponData.getWeaponId()).getSlot().getSlotId() == 9
+			                			||weaponData.isAble() && weaponData.isSelected() && WeaponModel.get(weaponData.getWeaponId()).getSlot().getSlotId() == 8){
 	                				reloadWeapon(player, weaponData, shopDialog, weaponName1);
 			                	} else {
-			                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())){
+			                		if(!WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId()) && !WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId())){
 			                			weaponData.setNormalAmmo(1);
 										weaponData.setAmmoState(AmmoState.NORMAL);
 										WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-				                		WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+				                		WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
 			                		} else {
 			                			if(weaponData.getNormalAmmo() <= 0
 			                			&& weaponData.getExplosiveAmmo() <= 0
@@ -106,7 +111,7 @@ public class WeaponShop {
 			                			&& weaponData.getHeavyAmmo() <= 0
 			                			&& weaponData.getSpecialAmmo() <= 0)
 			                				reloadWeapon(player, weaponData, shopDialog, weaponName1);
-			                			else WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
+			                			else WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
 			                		}
 			                	}
 			                } catch (Exception e) {
@@ -149,6 +154,8 @@ public class WeaponShop {
         	boolean ready = false;
 			for (AmmoState munityp : AmmoState.values()) {
 				if(munityp == null) continue;
+				if(munityp != AmmoState.NORMAL && WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId()))
+					continue;
         		ready = true;
         		double ammoTypPrice = WeaponSystem.getInstance().getMysqlConnection().getAmmoPrice(weaponData.getWeaponId());
 				if (munityp == AmmoState.NORMAL) ammoTypPrice = ammoTypPrice / 100 * 100;
@@ -197,8 +204,8 @@ public class WeaponShop {
 														weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() + ammo2);
 													weaponData.setAmmoState(munityp);
 													WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-													WeaponSystem.getInstance().getPlayerManager().GIVE_PlayerExternWeapon(player, weaponData.getWeaponId());
-													Shop(player);
+													WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
+													this.shop(player);
 												} catch (Exception e) {
 													e.printStackTrace();
 												}

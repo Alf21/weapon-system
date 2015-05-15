@@ -75,15 +75,15 @@ public class MysqlConnection {
            				 "weapon%d_ammoprice INTEGER NOT NULL DEFAULT '0', " +
            				 "weapon%d_selected BOOL NOT NULL DEFAULT '0', " +
            				 "ammo%d_normal INTEGER NOT NULL DEFAULT '0', " +
-           				 "ammo%d_explosiv INTEGER NOT NULL DEFAULT '0', " +
-           				 "ammo%d_panzerbrechend INTEGER NOT NULL DEFAULT '0', " + 
-           				 "ammo%d_brand INTEGER NOT NULL DEFAULT '0', ", i,i,i,i,i,i,i,i,i);
+           				 "ammo%d_explosive INTEGER NOT NULL DEFAULT '0', " +
+           				 "ammo%d_heavy INTEGER NOT NULL DEFAULT '0', " + 
+           				 "ammo%d_fire INTEGER NOT NULL DEFAULT '0', ", i,i,i,i,i,i,i,i,i);
 			         //  "weapon%d_status FLOAT NOT NULL DEFAULT '100'" + //TODO: falls man am Arm getroffen wurde, Waffenleben berechnen -> Daraus Treffgenauigkeit, Schüsse ohne Kugeln usw berechnen
                 	if(i!=46){
-                		query += String.format("ammo%d_speziell INTEGER NOT NULL DEFAULT '0', ", i);
+                		query += String.format("ammo%d_special INTEGER NOT NULL DEFAULT '0', ", i);
                 	}
                 	else {
-                		query += String.format("ammo%d_speziell INTEGER NOT NULL DEFAULT '0')", i);
+                		query += String.format("ammo%d_special INTEGER NOT NULL DEFAULT '0')", i);
                 	}
                 }
                 stmnt.executeUpdate(query);
@@ -188,12 +188,15 @@ public class MysqlConnection {
 					}
 					//else
 					for (int weaponId : getSlotWeapons(slot)){
-						if(rs.getInt("ammo"+weaponId+"_normal") > 0
-						|| rs.getInt("ammo"+weaponId+"_explosiv") > 0
-						|| rs.getInt("ammo"+weaponId+"_panzerbrechend") > 0
-						|| rs.getInt("ammo"+weaponId+"_brand") > 0
-						|| rs.getInt("ammo"+weaponId+"_speziell") > 0)
-							return weaponId;
+						for(AmmoState ammoState : AmmoState.values()){
+						/*	if(rs.getInt("ammo"+weaponId+"_normal") > 0
+							|| rs.getInt("ammo"+weaponId+"_explosiv") > 0
+							|| rs.getInt("ammo"+weaponId+"_panzerbrechend") > 0
+							|| rs.getInt("ammo"+weaponId+"_brand") > 0
+							|| rs.getInt("ammo"+weaponId+"_speziell") > 0)*/
+							if(rs.getInt("ammo"+weaponId+"_"+ammoState.toString().toLowerCase()) > 0)
+								return weaponId;
+						}
 					}
 				}
             }
@@ -238,7 +241,7 @@ public class MysqlConnection {
             	statement = connection.createStatement();
                 rs = statement.executeQuery(query);
 				if(rs.first()){
-					return rs.getInt("ammo" + i + "_" + typ);
+					return rs.getInt("ammo" + i + "_" + typ.toString().toLowerCase());
 				}
             }
 			else {
@@ -276,7 +279,7 @@ public class MysqlConnection {
 	public void create(Player player) {
 		try {
 			if (connection != null && connection.isValid(1000)) {
-				executeUpdate("INSERT INTO samp_weaponsystem (player, weapon30_model, ammo30_explosiv, ammo30_normal) VALUES ('"+player.getName()+"', '1', '6', '5')");
+				executeUpdate("INSERT INTO samp_weaponsystem (player, weapon30_model, ammo30_explosive, ammo30_normal) VALUES ('"+player.getName()+"', '1', '6', '5')");
 			}
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");
@@ -290,7 +293,7 @@ public class MysqlConnection {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
                 statement.execute(String.format("UPDATE samp_weaponsystem SET ammo%d_%s = '%d' WHERE player = '%s'",
-						weaponId, typ.toString(), muni, player.getName()));
+						weaponId, typ.toString().toLowerCase(), muni, player.getName()));
 			}
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");
@@ -395,7 +398,7 @@ public class MysqlConnection {
 		try {
             if (connection != null && connection.isValid(1000)) {
             	statement = connection.createStatement();
-                statement.execute(String.format("UPDATE samp_weaponsystem SET weapon%d_model = 'false', weapon_selected = 'false', ammo%d_normal = '0', ammo%d_explosiv ='0', ammo%d_brand = '0', ammo%d_panzerbrechend = '0', ammo%d_speziell = '0' WHERE player = '%s'", weaponId, weaponId, weaponId, weaponId, weaponId, weaponId, weaponId, player.getName()));
+                statement.execute(String.format("UPDATE samp_weaponsystem SET weapon%d_model = 'false', weapon_selected = 'false', ammo%d_normal = '0', ammo%d_explosive ='0', ammo%d_fire = '0', ammo%d_heavy = '0', ammo%d_special = '0' WHERE player = '%s'", weaponId, weaponId, weaponId, weaponId, weaponId, weaponId, weaponId, player.getName()));
             }
 		} catch (SQLException e) {
             System.out.print("ERROR - Stacktrace : ");

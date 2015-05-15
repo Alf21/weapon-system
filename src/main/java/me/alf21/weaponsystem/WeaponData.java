@@ -16,7 +16,6 @@ public class WeaponData {
 	private Integer weaponId;
 	private boolean selected;
 	private boolean able;
-	//private HashMap<String, Integer> muni_LOADED;
 
 	public WeaponData(String playerName, Integer weaponId) {
 		this.playerName = playerName;
@@ -87,16 +86,6 @@ public class WeaponData {
 	void setAble(boolean able) {
 		this.able = able;
 	}
-
-    /*
-    HashMap<String, Integer> getMUNI_Loaded() {
-		return muni_LOADED;
-	}
-    
-    void setMUNI_Loaded(HashMap<String, Integer> muni_LOADED) {
-		this.muni_LOADED = muni_LOADED;
-	}
-	*/
 
 	AmmoState getAmmoState() {
 		return ammoState;

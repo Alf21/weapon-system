@@ -25,27 +25,20 @@ import java.util.TimerTask;
  **/
 
 /*
- * Bugs:
+ * TODO:
  *         
  * - Wenn man durch eine Explosion getoetet wurde, welche durch einen Schuss eines Spielers ausgeloest wurde:
  *   Lsg.: Bekommen der Position der Explosion
  *         Bekommen des Spielers, der dorthin bzw. in die Naehe geschossen hat
  *         Ihn als Killer setzen
  *         
+ * - Animation, wenn man Weaponshop betritt, zB hinhocken und in ner Tasche rumkramen usw...
  */
-
-//TODO: Bug, wenn man Waffe wechselt und schnell zu Slot 1 wechselt -> Animation wird nicht abgebrochen
-//TODO: Weaponstatus unter WeaponData, nicht Lifecycle / PlayerData, denn wenn man Waffe wechselt -> Andere Waffe hat auch Brandmuni,
-//		Man wechselt die Munitionsart, Explosiv, dann zurück zur alten, dann hat diese Waffe auch den Waffenstatus / Munitionsart Explosiv ausgewählt
-
-//TODO: REMOVE muni_LOADED !
-//TODO: Animation, wenn man Weaponshop betritt, zB hinhocken und in ner Tasche rumkramen usw..
 
 public class PlayerManager implements Destroyable {
 	public static final boolean allowMinigun = false; //false, if u want better performance bcus of spamming and calculation for each ammo on shot
 	public static final int brandObjectsUpdateTime = 200; //Time when the next brandObject can create FOR EACH PLAYER !
 	//Config
-	//private static final boolean allowMinigunAmmoTypes = false;
 	private static final int changeWeaponFreezingTime = 1000; //freezingtime in miliseconds | 0, if no freeze
 	private static final int maxBrandObjects = 50; // FOR EACH PLAYER !
 	public PlayerData playerLifecycle;
@@ -86,16 +79,15 @@ public class PlayerManager implements Destroyable {
 					for(Player victim : Player.getHumans()){
 						PlayerData victimLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(victim, PlayerData.class);
 						//TODO: y and z coordinates ! 
-						if(victim.getLocation().x-e.getPosition().x<=1&&victim.getLocation().x-e.getPosition().x>=-1){
-							victim.setHealth(victimLifecycle.getHealth()-10);
-						}
-						else if(victim.getLocation().x-e.getPosition().x<=2&&victim.getLocation().x-e.getPosition().x>=-2){
-							victim.setHealth(victimLifecycle.getHealth()-5);
-						}
-						else if(victim.getLocation().x-e.getPosition().x<=3&&victim.getLocation().x-e.getPosition().x>=-3){
+						if(victim.getLocation().x-e.getPosition().x>=4&&victim.getLocation().x-e.getPosition().x<=-4){
+							victim.setHealth(victimLifecycle.getHealth());
+						} else if(victim.getLocation().x-e.getPosition().x<=3&&victim.getLocation().x-e.getPosition().x>=-3){
 							victim.setHealth(victimLifecycle.getHealth()-2);
-						}
-						else/* if(victims.getLocation().x-e.getPosition().x<4&&victims.getLocation().x-e.getPosition().x>-4)*/{ 
+						} else if(victim.getLocation().x-e.getPosition().x<=2&&victim.getLocation().x-e.getPosition().x>=-2){
+							victim.setHealth(victimLifecycle.getHealth()-5);
+						} else if(victim.getLocation().x-e.getPosition().x<=1&&victim.getLocation().x-e.getPosition().x>=-1){
+							victim.setHealth(victimLifecycle.getHealth()-10);
+						} else { 
 							victim.setHealth(victimLifecycle.getHealth());
 						}
 					}
@@ -128,7 +120,7 @@ public class PlayerManager implements Destroyable {
 				}
 				
 				//TODO: Bug, wenn man muni alle hat, WeaponState sich ändert, aber StandartMuni nur 1 ist und durch Schuss 0 -> Danach keine Muni mehr in nachfolgenden States, nur davor. Deshalb klasse erstellen : reloadWeapon(Player player, WeaponData weaponData, Integer weaponId, String typ) 
-				AfterWeaponShot(e, weaponData);
+				afterWeaponShot(e, weaponData);
 			});
 		});
 		
@@ -140,13 +132,6 @@ public class PlayerManager implements Destroyable {
 			//TODO: NO-DM ZONES 
 			if(!playerLifecycle.isNoDM()){
 				if(e.getPlayer() != e.getVictim()){
-					/*//Event Weapons
-					if(e.getWeapon().getId() == 25) { damage = e.getAmount()-70; }
-					if(e.getWeapon().getId() == 23) { damage = 100; }
-					if(e.getWeapon().getId() == 22) { damage = -5; }
-					if(e.getWeapon().getId() == 33) { CREATE_Explosion(e.getPlayer(), e.getVictim(), 5); }
-					if(e.getWeapon().getId() == 17) { damage = 2; }
-					*/
 					switch (weaponData.getAmmoState()) {
 						case NORMAL:
 							damage = (e.getAmount() / 100) * 50; //50% weniger Schaden / die Haelfte -> nur 50% Schaden
@@ -169,9 +154,9 @@ public class PlayerManager implements Destroyable {
 			}
 			else {
 				e.getVictim().setHealth(e.getVictim().getHealth());
-				CREATE_WarnExplosion(e.getPlayer());
+				createWarnExplosion(e.getPlayer());
 			}
-		//Give damage (HP && Armour)
+
 			if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() >= damage && weaponData.getAmmoState() != AmmoState.HEAVY)
 				e.getVictim().setArmour(e.getVictim().getArmour() - damage);
 			else if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() < damage && weaponData.getAmmoState() != AmmoState.HEAVY) {
@@ -188,7 +173,7 @@ public class PlayerManager implements Destroyable {
 			playerLifecycle.setHealth(e.getPlayer().getHealth());
 			
 			if(playerLifecycle.getPlayerStatus().equals("igniting")){
-				TogglePlayerBurning(e.getPlayer(), true);
+				togglePlayerBurning(e.getPlayer(), true);
 			}
 			
 			if(e.getPlayer().getArmedWeapon() != null){
@@ -209,7 +194,7 @@ public class PlayerManager implements Destroyable {
 
 //PlayerDisconnectEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerDisconnectEvent.class, (e) -> {
-			SAVE_Weapons(e.getPlayer());
+			saveWeapons(e.getPlayer());
 		});
 
 //PlayerSpawnEvent
@@ -218,10 +203,8 @@ public class PlayerManager implements Destroyable {
 				if(e.getPlayer().getState() != PlayerState.NONE) {
 					playerLifecycle.setCurrentAnimationIndex(0);
 					playerLifecycle.setMaximalAnimationIndex(0);
-					GIVE_NormalWeapons(e.getPlayer());
-				//	playerLifecycle.setPlayerStatus("spawned");
+					giveNormalWeapons(e.getPlayer());
 					playerLifecycle.setPlayerStatus("normal");
-					playerLifecycle.setMoney(100000);
 				}
 			});
 		});
@@ -238,19 +221,21 @@ public class PlayerManager implements Destroyable {
 			&& !e.getPlayer().isInAnyVehicle()){
 				if(playerLifecycle.getHoldingKey() == 0){
 					playerLifecycle.setHoldingKey(1);
-					Shoebill.get().runOnSampThread(() -> KeyCheck(e.getPlayer()));
+					Shoebill.get().runOnSampThread(() -> keyCheck(e.getPlayer()));
 				}
 			}
 		});
 	}
 	
-	private void KeyCheck(Player player) {
+	private void keyCheck(Player player) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
-		if(player.getKeyState().isKeyPressed(PlayerKey.NO)){
+		if(player.getKeyState().isKeyPressed(PlayerKey.NO)
+		&& PlayerState.WASTED != player.getState()
+		&& player.getHealth() != 0){
 			playerLifecycle.setHoldingKey(playerLifecycle.getHoldingKey()+1);
 			
 			if(playerLifecycle.getHoldingKey() == 20){ //1sek
-				showWeaponShop(player);
+				Shoebill.get().runOnSampThread(() -> showWeaponShop(player));
 			}
 		}
 		else {
@@ -265,16 +250,16 @@ public class PlayerManager implements Destroyable {
 			} catch(Exception e){
 				if(playerLifecycle != null){
 					playerLifecycle.setHoldingKey(0);
-					KeyCheck(player);
+					keyCheck(player);
 				}
 			}
 		}
 	}
 
 	private void showWeaponShop(Player player) {
-		WeaponShop weaponShop = new WeaponShop();
 		try {
-			weaponShop.Shop(player);
+			WeaponShop weaponShop = new WeaponShop();
+			weaponShop.shop(player);
 		} catch (IOException e) {
 			player.sendMessage(Color.RED, "An error occupied!");
 			e.printStackTrace();
@@ -329,9 +314,9 @@ public class PlayerManager implements Destroyable {
 			if(!playerLifecycle.getPlayerStatus().equals("INIT")){
 				if(!player.isInAnyVehicle()){
 					playerLifecycle.setMaximalAnimationIndex(playerLifecycle.getMaximalAnimationIndex()+1);
-					ANIMATION_Weapons_Reload(player, newWeapon);
-					SET_WeaponStatusText(player, weaponData.getAmmoState());
-					UNSELECT_Weapons(player, newWeapon, "weaponId");
+					animationWeaponsReload(player, newWeapon);
+					setWeaponStatusText(player, weaponData.getAmmoState());
+					unselectWeapons(player, newWeapon, "weaponId");
 					weaponData.setSelected(true);
 				} /*else {
 					//TODO: Give Old Weapon !
@@ -342,16 +327,16 @@ public class PlayerManager implements Destroyable {
 			if(playerLifecycle.getPlayerStatus().equals("reloaded")
 			|| playerLifecycle.getPlayerStatus().equals("reloading")){
 				playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), true);
-				ANIMATION_Clear(player, playerLifecycle.getPlayerTimer(), playerLifecycle.getPlayerStatus());
+				animationClear(player, playerLifecycle.getPlayerTimer(), playerLifecycle.getPlayerStatus());
 				playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), false);
 			}
 			if(playerLifecycle.getWeaponStatusText() != null) playerLifecycle.getWeaponStatusText().hide(player);
 		}
 	}
 
-	private void AfterWeaponShot(PlayerWeaponShotEvent e, WeaponData weaponData) {
+	private void afterWeaponShot(PlayerWeaponShotEvent e, WeaponData weaponData) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-		if(isGun(weaponData.getWeaponId())){
+		if(isGun(weaponData.getWeaponId()) || isRechargeable(weaponData.getWeaponId())){
 			if (weaponData.getNormalAmmo() > 0
 			|| weaponData.getFireAmmo() > 0
 			|| weaponData.getExplosiveAmmo() > 0
@@ -363,12 +348,11 @@ public class PlayerManager implements Destroyable {
 						if (weaponData.getNormalAmmo() > 0) {
 							ready = true;
 							weaponData.setNormalAmmo(weaponData.getNormalAmmo() - 1);
-							//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-							//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getNormalAmmo());
 							e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getNormalAmmo());
 						}
 						if (weaponData.getNormalAmmo() <= 0 && ready) {
-							if (weaponData.getFireAmmo() > 0) switchAmmoType(e.getPlayer(), weaponData, AmmoState.FIRE);
+							if (weaponData.getFireAmmo() > 0) 
+								switchAmmoType(e.getPlayer(), weaponData, AmmoState.FIRE);
 							else if (weaponData.getExplosiveAmmo() > 0)
 								switchAmmoType(e.getPlayer(), weaponData, AmmoState.EXPLOSIVE);
 							else if (weaponData.getHeavyAmmo() > 0)
@@ -383,8 +367,6 @@ public class PlayerManager implements Destroyable {
 						if (weaponData.getFireAmmo() > 0) {
 							ready = true;
 							weaponData.setFireAmmo(weaponData.getFireAmmo() - 1);
-							//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-							//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getFireAmmo());
 							e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getFireAmmo());
 						}
 						if (weaponData.getFireAmmo() <= 0 && ready) {
@@ -404,8 +386,6 @@ public class PlayerManager implements Destroyable {
 						if (weaponData.getExplosiveAmmo() > 0) {
 							ready = true;
 							weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo() - 1);
-							//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-							//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getExplosiveAmmo());
 							e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getExplosiveAmmo());
 						}
 						if (weaponData.getExplosiveAmmo() <= 0 && ready) {
@@ -425,8 +405,6 @@ public class PlayerManager implements Destroyable {
 						if (weaponData.getHeavyAmmo() > 0) {
 							ready = true;
 							weaponData.setHeavyAmmo(weaponData.getHeavyAmmo() - 1);
-							//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-							//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getHeavyAmmo());
 							e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getHeavyAmmo());
 						}
 						if (weaponData.getHeavyAmmo() <= 0 && ready) {
@@ -446,8 +424,6 @@ public class PlayerManager implements Destroyable {
 						if (weaponData.getSpecialAmmo() > 0) {
 							ready = true;
 							weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() - 1);
-							//	e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
-							//	e.getPlayer().giveWeapon(e.getPlayer().getArmedWeapon(), weaponData.getSpecialAmmo());
 							e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), weaponData.getSpecialAmmo());
 						}
 						if (weaponData.getSpecialAmmo() <= 0 && ready) {
@@ -463,66 +439,51 @@ public class PlayerManager implements Destroyable {
 						break;
 					}
 				}
+				if(weaponData.getNormalAmmo() <= 0
+				|| weaponData.getFireAmmo() <= 0
+				|| weaponData.getExplosiveAmmo() <= 0
+				|| weaponData.getHeavyAmmo() <= 0
+				|| weaponData.getSpecialAmmo() <= 0){
+					weaponData.setSelected(false);
+				}
 			}
 		}
 	}
 
 	private void switchAmmoType(Player player, WeaponData weaponData, AmmoState ammotyp) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
-		//TODO: ? Statt getNormalAmmo,... alles über die Hashmap regeln -> bessere Performance, einfacher / kürzer
-		//		oder den Hashmap getMUNI_Loaded löschen
-		//TODO: ? muni_LOADED to get shotable ammo without reload -> for later system -> only reloadAnimation when reloading...
-		//TODO: or delete muni_LOADED !
 		Shoebill.get().runOnSampThread(() -> {
 			if(isGun(player.getArmedWeapon().getId())){
-				/*
-				HashMap<String, Integer> muni_LOADED = new HashMap<String, Integer>();
-				if(player.getArmedWeapon() != null){
-					if(weaponData.getMUNI_Loaded() != null) muni_LOADED = weaponData.getMUNI_Loaded();
-					muni_LOADED.put(weaponData.getAmmoState(), player.getArmedWeaponAmmo());
-					if(player.getArmedWeaponAmmo() > 0) weaponData.setMUNI_Loaded(muni_LOADED);
-				}
-				*/
 				weaponData.setAmmoState(ammotyp);
 				switch (ammotyp) {
 					case NORMAL:
 						player.setWeaponAmmo(player.getArmedWeapon(), 0);
-					/*if(muni_LOADED.containsKey("normal")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("normal"));
-					else */
 						player.giveWeapon(player.getArmedWeapon(), weaponData.getNormalAmmo());
 						break;
 					case FIRE:
 						player.setWeaponAmmo(player.getArmedWeapon(), 0);
-					/*if(muni_LOADED.containsKey("brand")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("brand"));
-					else */
 						player.giveWeapon(player.getArmedWeapon(), weaponData.getFireAmmo());
 						break;
 					case EXPLOSIVE:
 						player.setWeaponAmmo(player.getArmedWeapon(), 0);
-					/*if(muni_LOADED.containsKey("explosiv")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("explosiv"));
-					else */
 						player.giveWeapon(player.getArmedWeapon(), weaponData.getExplosiveAmmo());
 						break;
 					case HEAVY:
 						player.setWeaponAmmo(player.getArmedWeapon(), 0);
-					/*if(muni_LOADED.containsKey("panzerbrechend")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("panzerbrechend"));
-					else */
 						player.giveWeapon(player.getArmedWeapon(), weaponData.getHeavyAmmo());
 						break;
 					case SPECIAL:
 						player.setWeaponAmmo(player.getArmedWeapon(), 0);
-					/*if(muni_LOADED.containsKey("speziell")) player.giveWeapon(player.getArmedWeapon(), weaponData.getMUNI_Loaded().get("speziell"));
-					else */
 						player.giveWeapon(player.getArmedWeapon(), weaponData.getSpecialAmmo());
 						break;
 				}
-				ANIMATION_Weapons_Reload(player, player.getArmedWeapon().getId());
-				SET_WeaponStatusText(player, weaponData.getAmmoState());
+				animationWeaponsReload(player, player.getArmedWeapon().getId());
+				setWeaponStatusText(player, weaponData.getAmmoState());
 			}
 		});
 	}
 
-	private void ANIMATION_Weapons_Reload(Player player, int weaponId) {
+	private void animationWeaponsReload(Player player, int weaponId) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		if(!playerLifecycle.getPlayerStatus().equals("reloaded")
 		&& !playerLifecycle.getPlayerStatus().equals("reloading")){
@@ -541,14 +502,12 @@ public class PlayerManager implements Destroyable {
 	
 		        playerLifecycle.setCurrentAnimationIndex(playerLifecycle.getCurrentAnimationIndex()+1);
 		        final int currentAnimationIndex = playerLifecycle.getCurrentAnimationIndex();
-		        //TODO: Or cancel only the TimerTask() ?
-	
+		        
 		        playerLifecycle.getPlayerTimer().schedule(new TimerTask() {
 					@Override
-		            public void run() { //TODO: Wenn man waffe wechselt und animation gecleared wird -> AnimationReady = true -> alte schedules werden trotzdem ausgeführt
+		            public void run() {
 						Shoebill.get().runOnSampThread(() -> {
-							//if(playerLifecycle.getAnimationReady(playerLifecycle.getPlayerTimer())) 
-							if(currentAnimationIndex == playerLifecycle.getMaximalAnimationIndex()) ANIMATION_Clear(player, playerLifecycle.getPlayerTimer(), playerLifecycle.getPlayerStatus());
+							if(currentAnimationIndex == playerLifecycle.getMaximalAnimationIndex()) animationClear(player, playerLifecycle.getPlayerTimer(), playerLifecycle.getPlayerStatus());
 		            	});
 		            }
 		        }, WeaponModel.get(weaponId).getSlot().getSlotId()==7?changeWeaponFreezingTime*2:changeWeaponFreezingTime);
@@ -557,22 +516,21 @@ public class PlayerManager implements Destroyable {
 			playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), false);
 			Shoebill.get().runOnSampThread(() -> player.clearAnimations(1));
 			playerLifecycle.setPlayerStatus("normal");
-			ANIMATION_Weapons_Reload(player, weaponId);
+			animationWeaponsReload(player, weaponId);
 		}
 	}
 
-	private void ANIMATION_Clear(Player player, Timer timer, String playerStatus) {
+	private void animationClear(Player player, Timer timer, String playerStatus) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		if(playerLifecycle.getAnimationReady(timer)){
 			Shoebill.get().runOnSampThread(() -> player.clearAnimations(1));
-			//	playerLifecycle.setPlayerStatus(playerStatus);
            	playerLifecycle.setPlayerStatus("normal");
            	playerLifecycle.setCurrentAnimationIndex(0);
            	playerLifecycle.setMaximalAnimationIndex(0);
     	}
 	}
 
-	private void SET_WeaponStatusText(Player player, AmmoState ammoState) {
+	private void setWeaponStatusText(Player player, AmmoState ammoState) {
 		Shoebill.get().runOnSampThread(() -> {
 			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 			String string = ammoState.getDisplayName();
@@ -603,51 +561,26 @@ public class PlayerManager implements Destroyable {
 		});
 	}
 
-	void INIT_GLOBAL_Timers(){ //vllt bei onPlayerUpdateEvent ! vllt mit dem Timer siehe Factions oder so
+	void initGlobalTimers(){ //vllt bei onPlayerUpdateEvent ! vllt mit dem Timer siehe Factions oder so
 		globalTimer.schedule(new TimerTask() {
             @Override
             public void run() {
 				Shoebill.get().runOnSampThread(() -> {
 					for(Player player : Player.getHumans())
-	            		KeyCheck(player);
+	            		keyCheck(player);
             	});
             }
         }, 2000, 50);
 	}
 
 	private void initWeapons(Player player) {
-		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
-		
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);	
 		if (!WeaponSystem.getInstance().getMysqlConnection().exist(player)) {
 			WeaponSystem.getInstance().getMysqlConnection().create(player);
 		}
-	/*	int cooldown = 50;
-		player.toggleSpectating(true);
-		player.sendMessage("Loading...");
-		playerLifecycle.setInitializingWeapon(0);
-		Timer timer = new Timer();
-		timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-            	if(playerLifecycle.getInitializingWeapon() <= 46){
-	    			INIT_Weapon(player, playerLifecycle.getInitializingWeapon());
-	    			playerLifecycle.setInitializingWeapon(playerLifecycle.getInitializingWeapon()+1);
-            	} else {
-            		timer.cancel();
-            		player.sendMessage("Ready!");
-            	}
-            }
-        }, 1000, cooldown);
-		Timer timer2 = new Timer();
-		timer2.schedule(new TimerTask() {
-            @Override
-            public void run() {
-            	player.toggleSpectating(false);
-            }
-        }, cooldown*47);*/
-		for(int i=0;i<=46;i++) INIT_Weapon(player, i);
+		for(int i=0;i<=46;i++) initWeapon(player, i);
 	}
-	private void INIT_Weapon(Player player, int i){
+	private void initWeapon(Player player, int i){
 		Shoebill.get().runOnSampThread(() -> {
 			WeaponData weaponData;
 			if (!hasWeaponData(player, i)) {
@@ -691,25 +624,20 @@ public class PlayerManager implements Destroyable {
 		});
 	}
 	
-	private void SAVE_Weapons(Player player){
+	private void saveWeapons(Player player){
 		for(int i=0; i<=46; i++){
-		//	if(player.getWeaponData(WeaponModel.get(i).getSlot().getSlotId()) != null){
-				WeaponData weaponData = getWeaponData(player, i);
-				WeaponSystem.getInstance().getMysqlConnection().setWeapon(player, i, weaponData.isAble());
-				WeaponSystem.getInstance().getMysqlConnection().setSelected(player, i, weaponData.isSelected());
+			WeaponData weaponData = getWeaponData(player, i);
+			WeaponSystem.getInstance().getMysqlConnection().setWeapon(player, i, weaponData.isAble());
+			WeaponSystem.getInstance().getMysqlConnection().setSelected(player, i, weaponData.isSelected());
 			WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, i, weaponData.getNormalAmmo(), AmmoState.NORMAL);
 			WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, i, weaponData.getFireAmmo(), AmmoState.FIRE);
 			WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, i, weaponData.getExplosiveAmmo(), AmmoState.EXPLOSIVE);
 			WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, i, weaponData.getHeavyAmmo(), AmmoState.HEAVY);
 			WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, i, weaponData.getSpecialAmmo(), AmmoState.SPECIAL);
-		/*	}
-			else {
-				WeaponSystem.getInstance().getMysqlConnection().resetWeapon(player, i);
-			}*/
 		}
 	}
 	
-	private void GIVE_NormalWeapons(Player player){
+	private void giveNormalWeapons(Player player){
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		playerLifecycle.setPlayerStatus("INIT");
 		Shoebill.get().runOnSampThread(() -> {
@@ -719,7 +647,6 @@ public class PlayerManager implements Destroyable {
 				WeaponData weaponData = getWeaponData(player, weaponId == 0 && i != 0 ? player.getWeaponData(i).getModel().getId() : weaponId);
 				if (weaponId == 0 && i != 0) {
 					weaponId = player.getWeaponData(i).getModel().getId();
-					//	weaponData = new WeaponData(player.getName(), weaponId);
 					if (weaponData.getNormalAmmo() <= 0
 							&& weaponData.getExplosiveAmmo() <= 0
 							&& weaponData.getFireAmmo() <= 0
@@ -731,7 +658,7 @@ public class PlayerManager implements Destroyable {
 				}
 
 				player.setWeaponAmmo(WeaponModel.get(weaponId), 0);
-				UNSELECT_Weapons(player, i, "slot");
+				unselectWeapons(player, i, "slot");
 				weaponData.setSelected(true);
 				weaponData.setAble(true);
 
@@ -752,18 +679,16 @@ public class PlayerManager implements Destroyable {
 					weaponData.setAmmoState(AmmoState.SPECIAL);
 				}
 				addWeaponData(player, weaponId, weaponData);
-				if (isGun(weaponId)) SET_WeaponStatusText(player, weaponData.getAmmoState());
+				if (isGun(weaponId)) setWeaponStatusText(player, weaponData.getAmmoState());
 			}
 		});
 		playerLifecycle.setPlayerStatus("INITED");
 	}
 
-	public void GIVE_PlayerExternWeapon(Player player, int weaponId){
+	public void givePlayerExternWeapon(Player player, int weaponId){
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		final WeaponData weaponData = getWeaponData(player, weaponId);
 		if(weaponData.getWeaponId() == 0 && WeaponModel.get(weaponId).getSlot().getSlotId() != 0){
-		//	weaponId = player.getWeaponData(WeaponModel.get(weaponId).getSlot().getSlotId()).getModel().getId();
-		//	weaponData = new WeaponData(player.getName(), weaponId);
 			if(weaponData.getNormalAmmo() <= 0
 			&& weaponData.getExplosiveAmmo() <= 0
 			&& weaponData.getFireAmmo() <= 0
@@ -775,7 +700,7 @@ public class PlayerManager implements Destroyable {
 		}
 
 		Shoebill.get().runOnSampThread(() -> player.setWeaponAmmo(WeaponModel.get(weaponId), 0));
-		UNSELECT_Weapons(player, weaponId, "weaponId");
+		unselectWeapons(player, weaponId, "weaponId");
 		weaponData.setSelected(true);
 		weaponData.setAble(true);
 		if (weaponData.getAmmoState() == null
@@ -820,65 +745,37 @@ public class PlayerManager implements Destroyable {
 			}
 		}
 		addWeaponData(player, weaponId, weaponData);
-		if (isGun(weaponId)) SET_WeaponStatusText(player, weaponData.getAmmoState());
+		if (isGun(weaponId)) setWeaponStatusText(player, weaponData.getAmmoState());
 	}
-	/*
-	private void CREATE_Explosion(Player player, Player victim, int countdown) {
-		if(player != victim){
-			CREATE_Countdown(countdown, victim, "BOOM");
-			CREATE_Countdown(countdown, player, "BOOM");
-			
-			Timer timer = Timer.create(countdown*1000, (factualInterval) ->
-			{
-				WeaponsystemPlugin.getInstance().getShoebill().getSampObjectManager().getWorld().createExplosion(victim.getLocation(), 12, 1);
-			});
-			timer.start();
-		}
-		else {
-			CREATE_Countdown(countdown, player, "BOOM");
-		
-			Timer timer = Timer.create(countdown*1000, (factualInterval) ->
-			{
-				WeaponsystemPlugin.getInstance().getShoebill().getSampObjectManager().getWorld().createExplosion(player.getLocation(), 12, 1);
-			});
-			timer.start();
-		}
-	}
-	*/
 	
-	private void CREATE_WarnExplosion(Player player) {
+	private void createWarnExplosion(Player player) {
 		Shoebill.get().runOnSampThread(() -> {
 			float health = player.getHealth();
 			player.createExplosion(player.getLocation(), 12, 1);
 			player.setHealth(health - 5);
 		});
 	}
-	/*
-	private void CREATE_Countdown(int countdown, Player player, String endText) {
-		if(countdown>0){
-			Timer timer = null;
-			player.sendGameText(1000, 1, String.valueOf(countdown));
-			countdown--;
-			for(int i = countdown; i >= 0; i--){
-				int ii = i;
-				timer = Timer.create(1000, (factualInterval) ->
-				{
-					if(ii != 0){
-						player.sendGameText(1000, 1, String.valueOf(ii));
-					}
-					else {
-						player.sendGameText(1000, 1, endText);
-					}
-				});
-				timer.start();
-				timer.destroy();
-			}
-		}
-	}
-	*/
+
     public void addWeaponData(Player player, Integer key, WeaponData weaponData){
     	HashMap<Integer, WeaponData> innerMap = weaponDataMap.get(player);
-		if (innerMap == null) innerMap = new HashMap<>();
+		if(innerMap == null) innerMap = new HashMap<>();
+		if(isRechargeable(key)){
+			weaponData.setAmmoState(AmmoState.NORMAL);
+			int ammo = weaponData.getNormalAmmo()+weaponData.getFireAmmo()+weaponData.getExplosiveAmmo()+weaponData.getHeavyAmmo()+weaponData.getSpecialAmmo();
+			weaponData.setNormalAmmo(ammo);
+			weaponData.setFireAmmo(0);
+			weaponData.setExplosiveAmmo(0);
+			weaponData.setHeavyAmmo(0);
+			weaponData.setSpecialAmmo(0);
+		}
+		else if(!isGun(key)){
+			weaponData.setAmmoState(AmmoState.NORMAL);
+			weaponData.setNormalAmmo(1);
+			weaponData.setFireAmmo(0);
+			weaponData.setExplosiveAmmo(0);
+			weaponData.setHeavyAmmo(0);
+			weaponData.setSpecialAmmo(0);
+		}
 		innerMap.put(key, weaponData);
 		weaponDataMap.put(player, innerMap);
     }
@@ -896,7 +793,7 @@ public class PlayerManager implements Destroyable {
 			weaponData.setHeavyAmmo(0);
 			weaponData.setSpecialAmmo(0);
 			weaponData.setAmmoState(AmmoState.NORMAL);
-			UNSELECT_Weapons(player, key, "weaponId");
+			unselectWeapons(player, key, "weaponId");
 			weaponData.setSelected(true);
 			weaponData.setAble(true);
 
@@ -913,7 +810,7 @@ public class PlayerManager implements Destroyable {
 		return innerMap.containsKey(key);
 	}
 
-    void UNSELECT_Weapons(Player player, int value, String typ) {
+    void unselectWeapons(Player player, int value, String typ) {
 		for(int weaponId : WeaponSystem.getInstance().getMysqlConnection().getSlotWeapons(typ.equals("slot")?value:WeaponModel.get(value).getSlot().getSlotId())){
 			WeaponData weaponData = getWeaponData(player, weaponId);
 			weaponData.setSelected(false);
@@ -921,20 +818,19 @@ public class PlayerManager implements Destroyable {
 		}
 	}
 
-	private void TogglePlayerBurning(Player player, boolean burning) {
-		if(!IsPlayerInWater(player)){
+	private void togglePlayerBurning(Player player, boolean burning) {
+		if(!isPlayerInWater(player)){
 			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
     		if(burning) {
 				Shoebill.get().runOnSampThread(() -> PlayerObject.create(player, 18688, new Location(player.getLocation().x, player.getLocation().y, player.getLocation().z), 0, 0, 0));
 				playerLifecycle.setHealth(player.getHealth());
     			playerLifecycle.setPlayerStatus("ignited");
-      //    TODO: Timer global or so -> to identify and better performace
 
                 fireTimer.schedule(new TimerTask() {
                     @Override
                     public void run() {
 						Shoebill.get().runOnSampThread(() -> {
-							BurningTimer(player);
+							burningTimer(player);
 						});
 					}
                 }, 0, 1000);
@@ -942,26 +838,25 @@ public class PlayerManager implements Destroyable {
                     @Override
                     public void run() {
 						Shoebill.get().runOnSampThread(() -> {
-							TogglePlayerBurning(player, false);
+							togglePlayerBurning(player, false);
 							fireTimer.cancel();
 						});
 					}
                 }, 7000);
 	        } else {
 				Shoebill.get().runOnSampThread(() -> PlayerObject.get(player, 18688).destroy());
-				//	playerLifecycle.setAmmoState("normal");
 				playerLifecycle.setPlayerStatus("normal");
 			}
     	}
     }
 
-    private boolean IsPlayerInWater(Player player){
+    private boolean isPlayerInWater(Player player){
     	float z = player.getLocation().z;
-		return (1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 0 || (z <= 41.0 && IsPlayerInArea(player, -1387, -473, 2025, 2824))) ||
-				(1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 2 || (z <= 39.0 && IsPlayerInArea(player, -1387, -473, 2025, 2824)));
+		return (1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 0 || (z <= 41.0 && isPlayerInArea(player, -1387, -473, 2025, 2824))) ||
+				(1544 >= player.getAnimationIndex() && player.getAnimationIndex() >= 1538 || player.getAnimationIndex() == 1062 || player.getAnimationIndex() == 1250) && (z <= 2 || (z <= 39.0 && isPlayerInArea(player, -1387, -473, 2025, 2824)));
 	}
 
-	private boolean IsPlayerInArea(Player player, float minX, float maxX, float minY, float maxY) {
+	private boolean isPlayerInArea(Player player, float minX, float maxX, float minY, float maxY) {
 		float x = player.getLocation().x;
     	float y = player.getLocation().y;
 		return x >= minX && x <= maxX && y >= minY && y <= maxY;
@@ -976,8 +871,14 @@ public class PlayerManager implements Destroyable {
 			&& WeaponModel.get(weaponId).getSlot().getSlotId() != 11
 			&& WeaponModel.get(weaponId).getSlot().getSlotId() != 12;
 	}
+	
+	boolean isRechargeable(int weaponId){
+		if(weaponId == 0) return false;
+		return WeaponModel.get(weaponId).getSlot().getSlotId() == 9
+			|| WeaponModel.get(weaponId).getSlot().getSlotId() == 8;
+	}
 
-	private void BurningTimer(Player player){
+	private void burningTimer(Player player){
 		Shoebill.get().runOnSampThread(() -> player.setHealth(player.getHealth() - 2.0f));
 	}
     

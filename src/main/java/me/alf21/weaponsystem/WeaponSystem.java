@@ -56,7 +56,7 @@ public class WeaponSystem extends Plugin {
         mysqlConnection = new MysqlConnection();
         mysqlConnection.initConnection();
         mysqlConnection.makeDatabase();
-        playerManager.INIT_GLOBAL_Timers();
+        playerManager.initGlobalTimers();
 	}
 
     Logger getLoggerInstance() {
@@ -93,7 +93,7 @@ public class WeaponSystem extends Plugin {
 		playerManager.addWeaponData(player, weaponId, weaponData);
 		
 		playerManager.playerLifecycle.setPlayerStatus("INIT");
-		playerManager.GIVE_PlayerExternWeapon(player, weaponId);
+		playerManager.givePlayerExternWeapon(player, weaponId);
 		playerManager.playerLifecycle.setPlayerStatus("INITED");
 	}
 
@@ -106,7 +106,7 @@ public class WeaponSystem extends Plugin {
 		playerManager.addWeaponData(player, weaponId, weaponData);
 
 		playerManager.playerLifecycle.setPlayerStatus("INIT");
-		playerManager.GIVE_PlayerExternWeapon(player, weaponId);
+		playerManager.givePlayerExternWeapon(player, weaponId);
 		playerManager.playerLifecycle.setPlayerStatus("INITED");
     }
     public void setWeaponAmmo(Player player, int weaponId, int ammo){
