@@ -29,8 +29,7 @@ class PlayerData extends PlayerLifecycleObject {
 	private Textdraw weaponStatusText;
 	private int initializingWeapon;
 	private int holdingKey;
-	private int currentAnimationIndex;
-	private int maximalAnimationIndex;
+	private int animationIndex;
 
     public PlayerData(EventManager eventManager, Player player) {
         super(eventManager, player);
@@ -145,20 +144,12 @@ class PlayerData extends PlayerLifecycleObject {
 		this.holdingKey = holdingKey;
 	}
     
-    int getCurrentAnimationIndex() {
-		return currentAnimationIndex;
+    int getAnimationIndex() {
+		return animationIndex;
 	}
     
-    void setCurrentAnimationIndex(int currentAnimationIndex) {
-		this.currentAnimationIndex = currentAnimationIndex;
-	}
-    
-    int getMaximalAnimationIndex() {
-		return maximalAnimationIndex;
-	}
-    
-    void setMaximalAnimationIndex(int maximalAnimationIndex) {
-		this.maximalAnimationIndex = maximalAnimationIndex;
+    void setAnimationIndex(int animationIndex) {
+		this.animationIndex = animationIndex;
 	}
     
 

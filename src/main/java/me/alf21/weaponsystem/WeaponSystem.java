@@ -99,7 +99,7 @@ public class WeaponSystem extends Plugin {
 
     public void givePlayerNewWeapon(Player player, int weaponId, int ammo){ //To initialize new Weapons with Weapondata / Ammo and get the data later again
     	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
-		weaponData.setNormalAmmo(ammo);
+		weaponData.setNormalAmmo(weaponData.getNormalAmmo() + ammo);
 		weaponData.setAmmoState(AmmoState.NORMAL);
 		weaponData.setAble(true);
 		
@@ -138,6 +138,24 @@ public class WeaponSystem extends Plugin {
 		weaponData.setSpecialAmmo(ammo);
 		playerManager.addWeaponData(player, weaponId, weaponData);
     }
+
+	public void setSelectedWeapon(Player player, int weaponId, boolean bool) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+		weaponData.setSelected(bool);
+		playerManager.addWeaponData(player, weaponId, weaponData);
+    }
+
+	public void setAbleWeapon(Player player, int weaponId, boolean bool) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+		weaponData.setAble(bool);
+		playerManager.addWeaponData(player, weaponId, weaponData);
+    }
+
+	public void setAmmoState(Player player, Integer weaponId, AmmoState ammoState) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+		weaponData.setAmmoState(ammoState);
+		playerManager.addWeaponData(player, weaponId, weaponData);
+    }
     
     public int getWeaponAmmo(Player player, int weaponId){
     	WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
@@ -162,5 +180,20 @@ public class WeaponSystem extends Plugin {
 	public int getSpecialWeaponAmmo(Player player, int weaponId) {
 		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
 		return weaponData.getSpecialAmmo();
+    }
+
+	public boolean isSelectedWeapon(Player player, int weaponId) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+		return weaponData.isSelected();
+    }
+
+	public boolean isAbleWeapon(Player player, int weaponId) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+		return weaponData.isAble();
+    }
+
+	public AmmoState getAmmoState(Player player, int weaponId) {
+		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);
+		return weaponData.getAmmoState();
     }
 }

@@ -188,15 +188,17 @@ public class MysqlConnection {
 					}
 					//else
 					for (int weaponId : getSlotWeapons(slot)){
-						for(AmmoState ammoState : AmmoState.values()){
-						/*	if(rs.getInt("ammo"+weaponId+"_normal") > 0
-							|| rs.getInt("ammo"+weaponId+"_explosiv") > 0
-							|| rs.getInt("ammo"+weaponId+"_panzerbrechend") > 0
-							|| rs.getInt("ammo"+weaponId+"_brand") > 0
-							|| rs.getInt("ammo"+weaponId+"_speziell") > 0)*/
-							if(rs.getInt("ammo"+weaponId+"_"+ammoState.toString().toLowerCase()) > 0)
+					//	for(AmmoState ammoState : AmmoState.values()){
+							if(rs.getInt("ammo"+weaponId+"_normal") > 0
+							|| rs.getInt("ammo"+weaponId+"_explosive") > 0
+							|| rs.getInt("ammo"+weaponId+"_heavy") > 0
+							|| rs.getInt("ammo"+weaponId+"_fire") > 0
+							|| rs.getInt("ammo"+weaponId+"_special") > 0)
 								return weaponId;
-						}
+							/*(rs.getInt("ammo"+weaponId+"_"+ammoState.toString().toLowerCase()) > 0){
+								return weaponId;
+							}*/
+					//	}
 					}
 				}
             }

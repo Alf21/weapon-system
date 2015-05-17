@@ -154,7 +154,8 @@ public class WeaponShop {
         	boolean ready = false;
 			for (AmmoState munityp : AmmoState.values()) {
 				if(munityp == null) continue;
-				if(munityp != AmmoState.NORMAL && WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId()))
+				if(munityp != AmmoState.NORMAL && WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId())
+				|| munityp != AmmoState.NORMAL && weaponData.getWeaponId() == 37)
 					continue;
         		ready = true;
         		double ammoTypPrice = WeaponSystem.getInstance().getMysqlConnection().getAmmoPrice(weaponData.getWeaponId());
@@ -193,15 +194,15 @@ public class WeaponShop {
 												try {
 													player.setMoney(player.getMoney() - ammoPrice2);
 													if (munityp == AmmoState.NORMAL)
-														weaponData.setNormalAmmo(weaponData.getNormalAmmo() + ammo2);
+														weaponData.setNormalAmmo(weaponData.getNormalAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
 													else if (munityp == AmmoState.FIRE)
-														weaponData.setFireAmmo(weaponData.getFireAmmo() + ammo2);
+														weaponData.setFireAmmo(weaponData.getFireAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
 													else if (munityp == AmmoState.EXPLOSIVE)
-														weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo() + ammo2);
+														weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
 													else if (munityp == AmmoState.HEAVY)
-														weaponData.setHeavyAmmo(weaponData.getHeavyAmmo() + ammo2);
+														weaponData.setHeavyAmmo(weaponData.getHeavyAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
 													else if (munityp == AmmoState.SPECIAL)
-														weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() + ammo2);
+														weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
 													weaponData.setAmmoState(munityp);
 													WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
 													WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
