@@ -23,6 +23,7 @@ public class WeaponShop {
 				
 				for(int i=1; i<=46; i++){
 					if(i==19||i==20||i==21) continue;
+					if(i == 38 && !PlayerManager.allowMinigun) continue;
 				//	if(i==37||WeaponModel.get(i).getSlot().getSlotId()==9) continue; //TODO: Flamethrower bugfix
 					WeaponData weaponData = WeaponSystem.getInstance().getPlayerManager().getWeaponData(player, i);
 					int price = WeaponSystem.getInstance().getMysqlConnection().getWeaponPrice(weaponData.getWeaponId());
@@ -155,7 +156,8 @@ public class WeaponShop {
 			for (AmmoState munityp : AmmoState.values()) {
 				if(munityp == null) continue;
 				if(munityp != AmmoState.NORMAL && WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId())
-				|| munityp != AmmoState.NORMAL && weaponData.getWeaponId() == 37)
+				|| munityp != AmmoState.NORMAL && !WeaponSystem.getInstance().getPlayerManager().isGun(weaponData.getWeaponId())
+				|| munityp != AmmoState.NORMAL && WeaponModel.get(weaponData.getWeaponId()).getSlot().getSlotId() == 7 && weaponData.getWeaponId() != 38)
 					continue;
         		ready = true;
         		double ammoTypPrice = WeaponSystem.getInstance().getMysqlConnection().getAmmoPrice(weaponData.getWeaponId());

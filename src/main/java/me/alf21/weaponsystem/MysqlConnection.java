@@ -434,7 +434,7 @@ public class MysqlConnection {
 			int[] weapons = {35,36,37,38};
 			return weapons;
 		} else if(slot == 8){
-			int[] weapons = {39};
+			int[] weapons = {16,17,18,39};
 			return weapons;
 		} else if(slot == 9){
 			int[] weapons = {41,42,43};

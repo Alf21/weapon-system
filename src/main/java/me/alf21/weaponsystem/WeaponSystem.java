@@ -144,6 +144,10 @@ public class WeaponSystem extends Plugin {
 		weaponData.setSelected(bool);
 		playerManager.addWeaponData(player, weaponId, weaponData);
     }
+	
+	public void unselectWeapons(Player player, int slot){
+		playerManager.unselectWeapons(player, slot, "slot");
+	}
 
 	public void setAbleWeapon(Player player, int weaponId, boolean bool) {
 		WeaponData weaponData = playerManager.getWeaponData(player, weaponId);

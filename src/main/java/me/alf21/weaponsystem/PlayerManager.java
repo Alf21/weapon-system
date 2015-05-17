@@ -41,6 +41,7 @@ public class PlayerManager implements Destroyable {
 	//Config
 	private static final int changeWeaponFreezingTime = 1000; //freezingtime in miliseconds | 0, if no freeze
 	private static final int maxBrandObjects = 50; // FOR EACH PLAYER !
+	private static final boolean debug = true;
 	public PlayerData playerLifecycle;
 	private PlayerData externPlayerLifecycle;
 	private Map<Player, HashMap<Integer, WeaponData>> weaponDataMap;
@@ -326,8 +327,7 @@ public class PlayerManager implements Destroyable {
 			if(playerLifecycle.getPlayerStatus().equals("reloaded")
 			|| playerLifecycle.getPlayerStatus().equals("reloading")){
 				playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), true);
-				animationClear(player, playerLifecycle.getPlayerTimer(), playerLifecycle.getPlayerStatus());
-				playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), false);
+				animationClear(player, playerLifecycle.getPlayerTimer());
 			}
 			if(playerLifecycle.getWeaponStatusText() != null) playerLifecycle.getWeaponStatusText().hide(player);
 		}
@@ -457,7 +457,7 @@ public class PlayerManager implements Destroyable {
 					weaponData.setSelected(false);
 				}
 			}
-			e.getPlayer().sendMessage("Muni: " + weaponData.getNormalAmmo() + " / " + e.getPlayer().getWeaponData(WeaponModel.get(weaponData.getWeaponId()).getSlot().getSlotId()).getAmmo() + " - " + weaponData.getAmmoState().toString());
+			if(debug) e.getPlayer().sendMessage("Muni: " + weaponData.getNormalAmmo() + " / " + e.getPlayer().getWeaponData(WeaponModel.get(weaponData.getWeaponId()).getSlot().getSlotId()).getAmmo() + " - " + weaponData.getAmmoState().toString());
 		}
 	}
 
@@ -492,6 +492,7 @@ public class PlayerManager implements Destroyable {
 		}
 	}
 
+	/*
 	private void animationWeaponsReload(Player player, int weaponId) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		if(!playerLifecycle.getPlayerStatus().equals("reloaded")
@@ -511,12 +512,52 @@ public class PlayerManager implements Destroyable {
 	        playerLifecycle.setAnimationIndex(playerLifecycle.getAnimationIndex()+1);
 	        final int currentAnimationIndex = playerLifecycle.getAnimationIndex();
 	        
+	        //TODO: nur für einen Spieler machen ! -> wenn Spieler animationcleared und anderer läuft -> beide bekommen animation gecleared!
 	        playerLifecycle.getPlayerTimer().schedule(new TimerTask() {
 				@Override
 	            public void run() {
 					Shoebill.get().runOnSampThread(() -> {
 						if(currentAnimationIndex == playerLifecycle.getAnimationIndex()){
-							animationClear(player, playerLifecycle.getPlayerTimer(), playerLifecycle.getPlayerStatus());
+							animationClear(player, playerLifecycle.getPlayerTimer());
+						}
+					});
+				}
+	        }, WeaponModel.get(weaponId).getSlot().getSlotId()==7?changeWeaponFreezingTime*2:changeWeaponFreezingTime);
+		} else {
+			playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), false);
+			player.clearAnimations(1);
+           	playerLifecycle.setPlayerStatus("normal");
+			animationWeaponsReload(player, weaponId);
+		}
+	}
+	*/
+	private void animationWeaponsReload(Player player, int weaponId) {
+		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
+		if(!playerLifecycle.getPlayerStatus().equals("reloaded")
+		&& !playerLifecycle.getPlayerStatus().equals("reloading")){
+			playerLifecycle.setPlayerStatus("reloading");
+			player.clearAnimations(1);
+			if(weaponId == 24 || weaponId == 22) player.applyAnimation("COLT45", "colt45_reload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime, 1);
+			else if(weaponId == 26) player.applyAnimation("COLT45", "sawnoff_reload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime, 1); //Sawnoff
+			else if(weaponId == 23) player.applyAnimation("SILENCED", "Silence_reload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime, 1); //Silenced
+			else if(weaponId == 32) player.applyAnimation("TEC", "TEC_reload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime, 1); //TEC-9
+			else if(weaponId == 28) player.applyAnimation("UZI", "UZI_reload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime, 1); //Micro SMG/UZI
+			else if(WeaponModel.get(weaponId).getSlot().getSlotId() == 7) player.applyAnimation("BUDDY", "buddy_crouchreload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime*2, 1);
+			else player.applyAnimation("BUDDY", "buddy_reload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime, 1);
+	        playerLifecycle.setPlayerStatus("reloaded");
+	        playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), true);
+
+	        playerLifecycle.setAnimationIndex(playerLifecycle.getAnimationIndex()+1);
+	        final int currentAnimationIndex = playerLifecycle.getAnimationIndex();
+	        
+	        //TODO: nur für einen Spieler machen ! -> wenn Spieler animationcleared und anderer läuft -> beide bekommen animation gecleared!
+	        playerLifecycle.getPlayerTimer().schedule(new TimerTask() {
+				@Override
+	            public void run() {
+					Shoebill.get().runOnSampThread(() -> {
+						if (debug) player.sendMessage("currentAnimationIndex: " + currentAnimationIndex + " / " + playerLifecycle.getAnimationIndex());
+						if (currentAnimationIndex == playerLifecycle.getAnimationIndex()) {
+							animationClear(player, playerLifecycle.getPlayerTimer());
 						}
 					});
 				}
@@ -529,10 +570,10 @@ public class PlayerManager implements Destroyable {
 		}
 	}
 
-	private void animationClear(Player player, Timer timer, String playerStatus) {
+	private void animationClear(Player player, Timer timer) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
 		if(playerLifecycle.getAnimationReady(timer)){
-			player.clearAnimations(1);
+			Shoebill.get().runOnSampThread(() -> player.clearAnimations(1));
            	playerLifecycle.setPlayerStatus("normal");
            	playerLifecycle.setAnimationIndex(0);
            	playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), false);
@@ -596,7 +637,10 @@ public class PlayerManager implements Destroyable {
 			weaponData = new WeaponData(player.getName(), i);
 			weaponData.setAble(WeaponSystem.getInstance().getMysqlConnection().isAble(player, i));
 			weaponData.setSelected(WeaponSystem.getInstance().getMysqlConnection().getSelected(player, i));
-			if (weaponData.isSelected()) unselectWeapons(player, i, "weaponId");
+			if (weaponData.isSelected()) {
+				unselectWeapons(player, i, "weaponId");
+				weaponData.setSelected(true);
+			}
 			weaponData.setNormalAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, AmmoState.NORMAL));
 			weaponData.setFireAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, AmmoState.FIRE));
 			weaponData.setExplosiveAmmo(WeaponSystem.getInstance().getMysqlConnection().getMUNI(player, i, AmmoState.EXPLOSIVE));
@@ -642,6 +686,7 @@ public class PlayerManager implements Destroyable {
 			weaponData.setAmmoState(AmmoState.NORMAL);
 			weaponData.setNormalAmmo(player.getWeaponData(WeaponModel.get(i).getSlot().getSlotId()).getAmmo());
 		}
+		
 		if(weaponData.getNormalAmmo() > 0
 		|| weaponData.getFireAmmo() > 0
 		|| weaponData.getExplosiveAmmo() > 0
@@ -668,6 +713,7 @@ public class PlayerManager implements Destroyable {
 			WeaponSystem.getInstance().getMysqlConnection().setMUNI(player, i, weaponData.getSpecialAmmo(), AmmoState.SPECIAL);
 		}
 	}
+	//TODO: WeaponShop Price bug with WeaponId 36 + 37,...?
 	
 	private void giveNormalWeapons(Player player){
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
