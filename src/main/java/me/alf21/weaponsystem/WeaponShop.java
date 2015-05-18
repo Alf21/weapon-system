@@ -153,6 +153,7 @@ public class WeaponShop {
             .onClickCancel(AbstractDialog::showParentDialog) 
             .build();
         	boolean ready = false;
+			boolean error = false;
 			for (AmmoState munityp : AmmoState.values()) {
 				if(munityp == null) continue;
 				if(munityp != AmmoState.NORMAL && WeaponSystem.getInstance().getPlayerManager().isRechargeable(weaponData.getWeaponId())
@@ -171,61 +172,68 @@ public class WeaponShop {
         		try {
         			ammo = Integer.parseInt(s);
         		} catch (Exception e){
+        			error = true;
         			player.sendMessage("Only Numbers!");
-        			reloadWeapon(player, weaponData, shopDialog, weaponName1);
         		}
-        		int ammoPrice2 = (int) (ammoTypPrice*ammo);
-				int ammo2 = ammo;
-        		
-				ammoDialog.getItems().add(ListDialogItem.create()
-						.itemText("Amount (" + munityp.getDisplayName() + "): " + (ammoPrice2 > player.getMoney() ? "{FF0000}" : "{00FF00}") + ammo + " / $" + ammoPrice2)
-						.onSelect((listDialogItem2, o2) -> {
-							try {
-								//	final int ammoPrice3 = ammoPrice2*ammo2;
-								//	if (ammoPrice3 < 0 || ammoPrice3 > player.getMoney())
-								if (ammoPrice2 < 0 || ammoPrice2 > player.getMoney()) {
-									player.sendMessage(Color.WHITE, "Not enough money.");
-									shopDialog.show();
-								} else {
-									MsgboxDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
-											.caption("{FF8A05}Buy " + ammo2 + " AMMO")
-											.message("Do you want to buy " + ammo2 + " AMMO for $" + ammoPrice2)
-											.buttonCancel("Back")
-											.buttonOk("Get!")
-											.onClickOk((s1) -> {
-												try {
-													player.setMoney(player.getMoney() - ammoPrice2);
-													if (munityp == AmmoState.NORMAL)
-														weaponData.setNormalAmmo(weaponData.getNormalAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
-													else if (munityp == AmmoState.FIRE)
-														weaponData.setFireAmmo(weaponData.getFireAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
-													else if (munityp == AmmoState.EXPLOSIVE)
-														weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
-													else if (munityp == AmmoState.HEAVY)
-														weaponData.setHeavyAmmo(weaponData.getHeavyAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
-													else if (munityp == AmmoState.SPECIAL)
-														weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
-													weaponData.setAmmoState(munityp);
-													WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
-													WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
-													this.shop(player);
-												} catch (Exception e) {
-													e.printStackTrace();
-												}
-											})
-											.parentDialog(ammoDialog)
-											.onClickCancel(AbstractDialog::showParentDialog)
-											.build()
-											.show();
+        		if(!error){
+	        		int ammoPrice2 = (int) (ammoTypPrice*ammo);
+					int ammo2 = ammo;
+	        		
+					ammoDialog.getItems().add(ListDialogItem.create()
+							.itemText("Amount (" + munityp.getDisplayName() + "): " + (ammoPrice2 > player.getMoney() ? "{FF0000}" : "{00FF00}") + ammo + " / $" + ammoPrice2)
+							.onSelect((listDialogItem2, o2) -> {
+								try {
+									//	final int ammoPrice3 = ammoPrice2*ammo2;
+									//	if (ammoPrice3 < 0 || ammoPrice3 > player.getMoney())
+									if (ammoPrice2 < 0 || ammoPrice2 > player.getMoney()) {
+										player.sendMessage(Color.WHITE, "Not enough money.");
+										shopDialog.show();
+									} else {
+										MsgboxDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
+												.caption("{FF8A05}Buy " + ammo2 + " AMMO")
+												.message("Do you want to buy " + ammo2 + " AMMO for $" + ammoPrice2)
+												.buttonCancel("Back")
+												.buttonOk("Get!")
+												.onClickOk((s1) -> {
+													try {
+														player.setMoney(player.getMoney() - ammoPrice2);
+														if (munityp == AmmoState.NORMAL)
+															weaponData.setNormalAmmo(weaponData.getNormalAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
+														else if (munityp == AmmoState.FIRE)
+															weaponData.setFireAmmo(weaponData.getFireAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
+														else if (munityp == AmmoState.EXPLOSIVE)
+															weaponData.setExplosiveAmmo(weaponData.getExplosiveAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
+														else if (munityp == AmmoState.HEAVY)
+															weaponData.setHeavyAmmo(weaponData.getHeavyAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
+														else if (munityp == AmmoState.SPECIAL)
+															weaponData.setSpecialAmmo(weaponData.getSpecialAmmo() + weaponData.getWeaponId()==37?ammo2*10:ammo2);
+														weaponData.setAmmoState(munityp);
+														WeaponSystem.getInstance().getPlayerManager().addWeaponData(player, weaponData.getWeaponId(), weaponData);
+														WeaponSystem.getInstance().getPlayerManager().givePlayerExternWeapon(player, weaponData.getWeaponId());
+														this.shop(player);
+													} catch (Exception e) {
+														e.printStackTrace();
+													}
+												})
+												.parentDialog(ammoDialog)
+												.onClickCancel(AbstractDialog::showParentDialog)
+												.build()
+												.show();
+									}
+								} catch (Exception e) {
+									System.out.println(e);
+									e.printStackTrace();
 								}
-							} catch (Exception e) {
-								System.out.println(e);
-								e.printStackTrace();
-							}
-						})
-                .build());
+							})
+	                .build());
+        		} else {
+        			reloadWeapon(player, weaponData, shopDialog, weaponName1);
+        			break;
+        		}
             }
-        	if(ready) ammoDialog.show();
+        	if(ready){
+        		if(!error) ammoDialog.show();
+        	}
         	else {
         		MsgboxDialog.create(player, WeaponSystem.getInstance().getEventManagerInstance())
 				.caption("{FF0000}No Ammo available!") 
