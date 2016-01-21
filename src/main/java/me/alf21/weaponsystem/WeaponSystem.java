@@ -56,7 +56,6 @@ public class WeaponSystem extends Plugin {
         mysqlConnection = new MysqlConnection();
         mysqlConnection.initConnection();
         mysqlConnection.makeDatabase();
-        playerManager.initGlobalTimers();
 	}
 
     Logger getLoggerInstance() {

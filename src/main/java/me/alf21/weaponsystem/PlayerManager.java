@@ -13,8 +13,6 @@ import net.gtaun.shoebill.object.*;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 //import net.gtaun.shoebill.constant.SpecialAction;
 //import net.gtaun.shoebill.object.Timer;
@@ -33,6 +31,8 @@ import java.util.TimerTask;
  *         Ihn als Killer setzen
  *         
  * - Animation, wenn man Weaponshop betritt, zB hinhocken und in ner Tasche rumkramen usw...
+ * 
+ * - Wenn man Waffe gekauft hat, den Preis in der MySQL Table speichern ! -> Beim VERKAUF den halben Preis des Preises wiedergeben
  */
 
 public class PlayerManager implements Destroyable {
@@ -41,13 +41,10 @@ public class PlayerManager implements Destroyable {
 	//Config
 	private static final int changeWeaponFreezingTime = 1000; //freezingtime in miliseconds | 0, if no freeze
 	private static final int maxBrandObjects = 50; // FOR EACH PLAYER !
-	private static final boolean debug = true;
+	private static final boolean debug = false;
 	public PlayerData playerLifecycle;
 	private PlayerData externPlayerLifecycle;
 	private Map<Player, HashMap<Integer, WeaponData>> weaponDataMap;
-	private Timer globalTimer = new Timer();
-	private Timer fireTimer = new Timer();
-	private Timer fireTimer2 = new Timer();
 
 	public PlayerManager()
 	{
@@ -55,156 +52,161 @@ public class PlayerManager implements Destroyable {
 
 //PlayerConnectEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerConnectEvent.class, (e) -> {
-			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-			playerLifecycle.setPlayerStatus("connected");
-			playerLifecycle.setHoldingKey(0);
-			playerLifecycle.setPlayerTimer(new Timer());
-			playerLifecycle.setCurrentWeapon(0);
-
-			initWeapons(e.getPlayer());
+			if(!e.getPlayer().isNpc()) {
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+				playerLifecycle.setPlayerStatus("connected");
+				playerLifecycle.setHoldingKey(0);
+				playerLifecycle.setCurrentWeapon(0);
+	
+				initWeapons(e.getPlayer());
+				Timer timer = Timer.create(50, (factualInterval) -> {
+					keyCheck(e.getPlayer());
+				});
+				timer.start();
+				playerLifecycle.getTimerList().add(timer);
+			}
 		});
 		
 //PlayerWeaponShotEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerWeaponShotEvent.class, (e) -> {
-			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-			if (e.getHitPlayer() != null)
-				externPlayerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getHitPlayer(), PlayerData.class);
-			WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
-			if (weaponData.getExplosiveAmmo() > 0 && weaponData.getAmmoState() == AmmoState.EXPLOSIVE) {
-				for(Player victim : Player.getHumans()){
-					victim.setHealth(100);
-				}
-				Shoebill.get().getSampObjectManager().getWorld().createExplosion(new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z), 12, 1);
-				for(Player victim : Player.getHumans()){
-					PlayerData victimLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(victim, PlayerData.class);
-					//TODO: y and z coordinates ! 
-					if(victim.getLocation().x-e.getPosition().x>=4&&victim.getLocation().x-e.getPosition().x<=-4){
-						victim.setHealth(victimLifecycle.getHealth());
-					} else if(victim.getLocation().x-e.getPosition().x<=3&&victim.getLocation().x-e.getPosition().x>=-3){
-						victim.setHealth(victimLifecycle.getHealth()-2);
-					} else if(victim.getLocation().x-e.getPosition().x<=2&&victim.getLocation().x-e.getPosition().x>=-2){
-						victim.setHealth(victimLifecycle.getHealth()-5);
-					} else if(victim.getLocation().x-e.getPosition().x<=1&&victim.getLocation().x-e.getPosition().x>=-1){
-						victim.setHealth(victimLifecycle.getHealth()-10);
-					} else { 
-						victim.setHealth(victimLifecycle.getHealth());
+			if(!e.getPlayer().isNpc()) {
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+				if (e.getHitPlayer() != null)
+					externPlayerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getHitPlayer(), PlayerData.class);
+				WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
+				if (weaponData.getExplosiveAmmo() > 0 && weaponData.getAmmoState() == AmmoState.EXPLOSIVE) {
+					for(Player victim : Player.getHumans()){
+						victim.setHealth(100);
 					}
-				}
-				if(e.getHitObject() != null){
-					Shoebill.get().getSampObjectManager().getWorld().createExplosion(e.getHitObject().getLocation(), 12, 1);
-				}
-			}
-			if (weaponData.getFireAmmo() > 0 && weaponData.getAmmoState() == AmmoState.FIRE) {
-			//TODO: Entscheiden, ob man die Flammen nur für den Spieler oder auch für andere Spieler anzeigt.
-				if(e.getHitPlayer() != null) externPlayerLifecycle.setPlayerStatus("igniting");
-				else {
-					if(playerLifecycle.getBrandObjects()+1 <= maxBrandObjects){ //max. 50 Flammen erstellen in 2sek!
-						if (playerLifecycle.getCreateBrand()) {
-							playerLifecycle.setCreateBrand(false);
-							playerLifecycle.setBrandObjects(playerLifecycle.getBrandObjects()+1);
-							SampObject sampObject = Shoebill.get().getSampObjectManager().createObject(18688, new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z + 0.25f), e.getPosition(), 0);
-
-							globalTimer.schedule(new TimerTask() {
-			                    @Override
-			                    public void run() {
-									Shoebill.get().runOnSampThread(() -> {
-										sampObject.destroy();
-						    			playerLifecycle.setBrandObjects(playerLifecycle.getBrandObjects()-1);
-			                    	});
-			                    }
-			                }, 2000);
+					Shoebill.get().getSampObjectManager().getWorld().createExplosion(new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z), 12, 1);
+					for(Player victim : Player.getHumans()){
+						PlayerData victimLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(victim, PlayerData.class);
+						if(e.getPosition().distance(victim.getLocation()) > 3){
+							victim.setHealth(victimLifecycle.getHealth());
+						} else if(e.getPosition().distance(victim.getLocation()) <= 1){
+							victim.setHealth(victimLifecycle.getHealth()-10);
+						} else if(e.getPosition().distance(victim.getLocation()) <= 2){
+							victim.setHealth(victimLifecycle.getHealth()-5);
+						} else if(e.getPosition().distance(victim.getLocation()) <= 3){
+							victim.setHealth(victimLifecycle.getHealth()-2);
 						}
 					}
 				}
+				if (weaponData.getFireAmmo() > 0 && weaponData.getAmmoState() == AmmoState.FIRE) {
+				//TODO: Entscheiden, ob man die Flammen nur für den Spieler oder auch für andere Spieler anzeigt.
+					if(e.getHitPlayer() != null) externPlayerLifecycle.setPlayerStatus("igniting");
+					else {
+						if(playerLifecycle.getBrandObjects()+1 <= maxBrandObjects){ //max. 50 Flammen erstellen in 2sek!
+							if (playerLifecycle.getCreateBrand()) {
+								playerLifecycle.setCreateBrand(false);
+								playerLifecycle.setBrandObjects(playerLifecycle.getBrandObjects()+1);
+								SampObject sampObject = Shoebill.get().getSampObjectManager().createObject(18688, new Location(e.getPosition().x, e.getPosition().y, e.getPosition().z + 0.25f), e.getPosition(), 0);		
+								Timer timer = Timer.create(2000, 1, (factualInterval) -> {
+									sampObject.destroy();
+									playerLifecycle.setBrandObjects(playerLifecycle.getBrandObjects()-1);
+								});
+								timer.start();
+								playerLifecycle.getTimerList().add(timer);
+							}
+						}
+					}
+				}
+				
+				//TODO: Bug, wenn man muni alle hat, WeaponState sich ändert, aber StandartMuni nur 1 ist und durch Schuss 0 -> Danach keine Muni mehr in nachfolgenden States, nur davor. Deshalb klasse erstellen : reloadWeapon(Player player, WeaponData weaponData, Integer weaponId, String typ) 
+				afterWeaponShot(e, weaponData);
 			}
-			
-			//TODO: Bug, wenn man muni alle hat, WeaponState sich ändert, aber StandartMuni nur 1 ist und durch Schuss 0 -> Danach keine Muni mehr in nachfolgenden States, nur davor. Deshalb klasse erstellen : reloadWeapon(Player player, WeaponData weaponData, Integer weaponId, String typ) 
-			afterWeaponShot(e, weaponData);
 		});
 		
 //PlayerGiveDamageEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerGiveDamageEvent.class, (e) -> {
-			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-			WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
-			float damage = e.getAmount();
-			//TODO: NO-DM ZONES 
-			if(!playerLifecycle.isNoDM()){
-				if(e.getPlayer() != e.getVictim()){
-					switch (weaponData.getAmmoState()) {
-						case NORMAL:
-							damage = (e.getAmount() / 100) * 50; //50% weniger Schaden / die Haelfte -> nur 50% Schaden
-							break;
-						case FIRE:
-							damage = 1;
-							break;
-						case EXPLOSIVE:
-							damage = (e.getAmount() / 100) * 10; //90% weniger Schaden -> 10% Schaden
-							break;
-						case HEAVY:
-							damage = (e.getAmount() / 100) * 65; //35% weniger Schaden -> 65% Schaden
-							break;
-						case SPECIAL:
-							damage = (e.getAmount() / 100) * 120; //20% mehr Schaden -> 120% Schaden
-							break;
+			if(!e.getPlayer().isNpc()) {
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+				WeaponData weaponData = getWeaponData(e.getPlayer(), e.getPlayer().getArmedWeapon().getId());
+				float damage = e.getAmount();
+				//TODO: NO-DM ZONES 
+				if(!playerLifecycle.isNoDM()){
+					if(e.getPlayer() != e.getVictim()){
+						switch (weaponData.getAmmoState()) {
+							case NORMAL:
+								damage = (e.getAmount() / 100) * 50; //50% weniger Schaden / die Haelfte -> nur 50% Schaden
+								break;
+							case FIRE:
+								damage = 1;
+								break;
+							case EXPLOSIVE:
+								damage = (e.getAmount() / 100) * 10; //90% weniger Schaden -> 10% Schaden
+								break;
+							case HEAVY:
+								damage = (e.getAmount() / 100) * 65; //35% weniger Schaden -> 65% Schaden
+								break;
+							case SPECIAL:
+								damage = (e.getAmount() / 100) * 120; //20% mehr Schaden -> 120% Schaden
+								break;
+						}
 					}
+					//Satchel as Medipack
 				}
-				//Satchel as Medipack
+				else {
+					e.getVictim().setHealth(e.getVictim().getHealth()+e.getAmount());
+					createWarnExplosion(e.getPlayer());
+				}
+	
+				if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() >= damage && weaponData.getAmmoState() != AmmoState.HEAVY)
+					e.getVictim().setArmour(e.getVictim().getArmour() - damage);
+				else if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() < damage && weaponData.getAmmoState() != AmmoState.HEAVY) {
+					float restDamage = damage - e.getPlayer().getArmour();
+					e.getPlayer().setArmour(0);
+					e.getPlayer().setHealth(e.getPlayer().getHealth() - restDamage);
+				}
+				else e.getVictim().setHealth(e.getVictim().getHealth() - damage);
 			}
-			else {
-				e.getVictim().setHealth(e.getVictim().getHealth());
-				createWarnExplosion(e.getPlayer());
-			}
-
-			if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() >= damage && weaponData.getAmmoState() != AmmoState.HEAVY)
-				e.getVictim().setArmour(e.getVictim().getArmour() - damage);
-			else if (e.getPlayer().getArmour() > 0 && e.getPlayer().getArmour() < damage && weaponData.getAmmoState() != AmmoState.HEAVY) {
-				float restDamage = damage - e.getPlayer().getArmour();
-				e.getPlayer().setArmour(0);
-				e.getPlayer().setHealth(e.getPlayer().getHealth() - restDamage);
-			}
-			else e.getVictim().setHealth(e.getVictim().getHealth() - damage);
 		});
 		
 //PlayerUpdateEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerUpdateEvent.class, (e) -> {
-			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-			playerLifecycle.setHealth(e.getPlayer().getHealth());
-			
-			if(playerLifecycle.getPlayerStatus().equals("igniting")){
-				togglePlayerBurning(e.getPlayer(), true);
-			}
-			
-			if(e.getPlayer().getArmedWeapon() != null){
-				int currentWeapon = e.getPlayer().getArmedWeapon().getId();
-				if(currentWeapon != playerLifecycle.getCurrentWeapon()){
-					OnPlayerChangeWeapon(e.getPlayer(), playerLifecycle.getCurrentWeapon(), currentWeapon);
-				} else { //TODO To include PAWN Weapons ! ATTENTION, no ANTI-CHEAT
-					OnPlayerUpdateWeapon(e.getPlayer(), currentWeapon);
+			if(!e.getPlayer().isNpc()) {
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+				playerLifecycle.setHealth(e.getPlayer().getHealth());
+				
+				if(playerLifecycle.getPlayerStatus().equals("igniting")){
+					togglePlayerBurning(e.getPlayer(), true);
 				}
-				playerLifecycle.setCurrentWeapon(currentWeapon);
-			}
-
-			if(playerLifecycle.getPlayerStatus().equals("INITED")) playerLifecycle.setPlayerStatus("normal");
-			
-			//REMOVE MINIGUN
-			if(e.getPlayer().getArmedWeapon().getId() == 38){
-				if(!allowMinigun) e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
+				
+				if(e.getPlayer().getArmedWeapon() != null){
+					int currentWeapon = e.getPlayer().getArmedWeapon().getId();
+					if(currentWeapon != playerLifecycle.getCurrentWeapon()){
+						OnPlayerChangeWeapon(e.getPlayer(), playerLifecycle.getCurrentWeapon(), currentWeapon);
+					} else { //TODO To include PAWN Weapons ! ATTENTION, no ANTI-CHEAT
+						OnPlayerUpdateWeapon(e.getPlayer(), currentWeapon);
+					}
+					playerLifecycle.setCurrentWeapon(currentWeapon);
+				}
+	
+				if(playerLifecycle.getPlayerStatus().equals("INITED")) playerLifecycle.setPlayerStatus("normal");
+				
+				//REMOVE MINIGUN
+				if(e.getPlayer().getArmedWeapon().getId() == 38){
+					if(!allowMinigun) e.getPlayer().setWeaponAmmo(e.getPlayer().getArmedWeapon(), 0);
+				}
 			}
 		});
 
 //PlayerDisconnectEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerDisconnectEvent.class, (e) -> {
-			saveWeapons(e.getPlayer());
+			if(!e.getPlayer().isNpc())
+				saveWeapons(e.getPlayer());
 		});
 
 //PlayerSpawnEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerSpawnEvent.class, (e) -> {
-			if(e.getPlayer().getState() != PlayerState.NONE) {
-				playerLifecycle.setAnimationIndex(0);
-				Shoebill.get().runOnSampThread(() -> {
-					giveNormalWeapons(e.getPlayer());
-				});
-				playerLifecycle.setPlayerStatus("normal");
+			if(!e.getPlayer().isNpc()) {
+				if(e.getPlayer().getState() != PlayerState.NONE) {
+					Shoebill.get().runOnSampThread(() -> {
+						giveNormalWeapons(e.getPlayer());
+						animationClear(e.getPlayer());
+					});
+					playerLifecycle.setPlayerStatus("normal");
+				}
 			}
 		});
 
@@ -215,12 +217,14 @@ public class PlayerManager implements Destroyable {
 		
 //PlayerKeyStateChangeEvent
 		WeaponSystem.getInstance().getEventManagerInstance().registerHandler(PlayerKeyStateChangeEvent.class, (e) -> {
-			playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
-			if(e.getPlayer().getKeyState().isKeyPressed(PlayerKey.NO)
-			&& !e.getPlayer().isInAnyVehicle()){
-				if(playerLifecycle.getHoldingKey() == 0){
-					playerLifecycle.setHoldingKey(1);
-					keyCheck(e.getPlayer());
+			if(!e.getPlayer().isNpc()) {
+				playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(e.getPlayer(), PlayerData.class);
+				if(e.getPlayer().getKeyState().isKeyPressed(PlayerKey.NO)
+				&& !e.getPlayer().isInAnyVehicle()){
+					if(playerLifecycle.getHoldingKey() == 0){
+						playerLifecycle.setHoldingKey(1);
+						keyCheck(e.getPlayer());
+					}
 				}
 			}
 		});
@@ -318,16 +322,13 @@ public class PlayerManager implements Destroyable {
 					unselectWeapons(player, newWeapon, "weaponId");
 					weaponData.setSelected(true);
 					weaponData.setAble(true);
-				} /*else {
-					//TODO: Give Old Weapon !
-				}*/
+				}
 			}
 		}
 		else {
 			if(playerLifecycle.getPlayerStatus().equals("reloaded")
 			|| playerLifecycle.getPlayerStatus().equals("reloading")){
-				playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), true);
-				animationClear(player, playerLifecycle.getPlayerTimer());
+				animationClear(player); //TODO ?
 			}
 			if(playerLifecycle.getWeaponStatusText() != null) playerLifecycle.getWeaponStatusText().hide(player);
 		}
@@ -545,39 +546,28 @@ public class PlayerManager implements Destroyable {
 			else if(WeaponModel.get(weaponId).getSlot().getSlotId() == 7) player.applyAnimation("BUDDY", "buddy_crouchreload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime*2, 1);
 			else player.applyAnimation("BUDDY", "buddy_reload", 4.1f, 1, 1, 1, changeWeaponFreezingTime, changeWeaponFreezingTime, 1);
 	        playerLifecycle.setPlayerStatus("reloaded");
-	        playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), true);
-
-	        playerLifecycle.setAnimationIndex(playerLifecycle.getAnimationIndex()+1);
-	        final int currentAnimationIndex = playerLifecycle.getAnimationIndex();
 	        
-	        //TODO: nur für einen Spieler machen ! -> wenn Spieler animationcleared und anderer läuft -> beide bekommen animation gecleared!
-	        playerLifecycle.getPlayerTimer().schedule(new TimerTask() {
-				@Override
-	            public void run() {
-					Shoebill.get().runOnSampThread(() -> {
-						if (debug) player.sendMessage("currentAnimationIndex: " + currentAnimationIndex + " / " + playerLifecycle.getAnimationIndex());
-						if (currentAnimationIndex == playerLifecycle.getAnimationIndex()) {
-							animationClear(player, playerLifecycle.getPlayerTimer());
-						}
-					});
-				}
-	        }, WeaponModel.get(weaponId).getSlot().getSlotId()==7?changeWeaponFreezingTime*2:changeWeaponFreezingTime);
+	        if(playerLifecycle.getPlayerTimer() != null && playerLifecycle.getPlayerTimer().isRunning()) {
+	        	playerLifecycle.getPlayerTimer().stop();
+	        	playerLifecycle.getPlayerTimer().destroy();
+	        }
+	        playerLifecycle.setPlayerTimer(
+	        	Timer.create(WeaponModel.get(weaponId).getSlot().getSlotId()==7?changeWeaponFreezingTime*2:changeWeaponFreezingTime, 1, (factualInterval) -> {
+					animationClear(player);
+	        	}
+	        ));
+	        playerLifecycle.getPlayerTimer().start();
 		} else {
-			playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), false);
 			player.clearAnimations(1);
            	playerLifecycle.setPlayerStatus("normal");
 			animationWeaponsReload(player, weaponId);
 		}
 	}
 
-	private void animationClear(Player player, Timer timer) {
+	private void animationClear(Player player) {
 		playerLifecycle = WeaponSystem.getInstance().getPlayerLifecycleHolder().getObject(player, PlayerData.class);
-		if(playerLifecycle.getAnimationReady(timer)){
-			Shoebill.get().runOnSampThread(() -> player.clearAnimations(1));
-           	playerLifecycle.setPlayerStatus("normal");
-           	playerLifecycle.setAnimationIndex(0);
-           	playerLifecycle.setAnimationReady(playerLifecycle.getPlayerTimer(), false);
-		}
+		Shoebill.get().runOnSampThread(() -> player.clearAnimations(1));
+       	playerLifecycle.setPlayerStatus("normal");
 	}
 
 	private void setWeaponStatusText(Player player, AmmoState ammoState) {
@@ -607,18 +597,6 @@ public class PlayerManager implements Destroyable {
 		weaponStatusText.show(player);
 
 		playerLifecycle.setWeaponStatusText(weaponStatusText);
-	}
-
-	void initGlobalTimers(){ //TODO: vllt bei onPlayerUpdateEvent ! vllt mit dem Timer siehe Factions oder so
-		globalTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-				Shoebill.get().runOnSampThread(() -> {
-					for(Player player : Player.getHumans())
-	            		keyCheck(player);
-            	});
-            }
-        }, 2000, 50);
 	}
 
 	private void initWeapons(Player player) {
@@ -937,22 +915,17 @@ public class PlayerManager implements Destroyable {
 				PlayerObject.create(player, 18688, new Location(player.getLocation().x, player.getLocation().y, player.getLocation().z), 0, 0, 0);
 				playerLifecycle.setHealth(player.getHealth());
     			playerLifecycle.setPlayerStatus("ignited");
-
-                fireTimer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-						Shoebill.get().runOnSampThread(() -> burningTimer(player));
-					}
-                }, 0, 1000);
-                fireTimer2.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-						Shoebill.get().runOnSampThread(() -> {
-							togglePlayerBurning(player, false);
-							fireTimer.cancel();
-						});
-					}
-                }, 7000);
+				playerLifecycle.setCount(6);
+    			Timer timer = Timer.create(1000, playerLifecycle.getCount()+1, (factualInterval) -> {
+    				if(playerLifecycle.getCount() != 0) {
+    					Shoebill.get().runOnSampThread(() -> burningTimer(player));
+    				}
+    				else {
+						togglePlayerBurning(player, false);
+    				}
+    			});
+    			timer.start();
+    			playerLifecycle.getTimerList().add(timer);
 	        } else {
 				PlayerObject.get(player, 18688).destroy();
 				playerLifecycle.setPlayerStatus("normal");
